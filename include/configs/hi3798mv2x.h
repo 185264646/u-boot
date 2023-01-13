@@ -40,7 +40,7 @@
 			"pxefile_addr_r=0x32000000\0"			\
 			"scriptaddr=0x32000000\0"			\
 			"fdt_addr_r=0x32200000\0"			\
-			"fdtfile=hisilicon/hi3798cv200-poplar.dtb\0"	\
+			"fdtfile=hisilicon/hi3798mv200-demo.dtb\0"	\
 			"ramdisk_addr_r=0x32400000\0"			\
 			BOOTENV
 

@@ -18,6 +18,7 @@ dtb-$(CONFIG_TARGET_HIKEY) += hi6220-hikey.dtb
 dtb-$(CONFIG_TARGET_HIKEY960) += hi3660-hikey960.dtb
 
 dtb-$(CONFIG_TARGET_POPLAR) += hi3798cv200-poplar.dtb
+dtb-$(CONFIG_TARGET_HI3798MV2X) += hi3798mv200-demo.dtb
 
 dtb-$(CONFIG_ARCH_EXYNOS5) += exynos5250-arndale.dtb \
 	exynos5250-snow.dtb \
