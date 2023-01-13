@@ -12,7 +12,7 @@
 #include <asm/global_data.h>
 #include <asm/io.h>
 #include <dm/platform_data/serial_pl01x.h>
-#include <asm/arch/hi3798cv200.h>
+#include <asm/arch/hi3798mv200.h>
 #include <asm/armv8/mmu.h>
 #include <linux/bitops.h>
 #include <linux/delay.h>

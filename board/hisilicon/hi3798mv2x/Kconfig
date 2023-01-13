@@ -1,15 +1,15 @@
 if TARGET_HI3798MV2X
 
 config SYS_BOARD
-	default "poplar"
+	default "hi3798mv2x"
 
 config SYS_VENDOR
 	default "hisilicon"
 
 config SYS_SOC
-	default "hi3798cv200"
+	default "hi3798mv200"
 
 config SYS_CONFIG_NAME
-	default "poplar"
+	default "hi3798mv2x"
 
 endif
