@@ -14,7 +14,7 @@
 #include "poplar-pinctrl.dtsi"
 
 / {
-	model = "HiSilicon Poplar Development Board";
+	model = "Hisilicon HiSTB hi3798mv200 demo board";
 	compatible = "hisilicon,hi3798mv200-demo", "hisilicon,hi3798mv200";
 
 	aliases {
@@ -81,7 +81,7 @@
 };
 
 &ehci {
-	status = "okay";
+	status = "disabled";
 };
 
 &emmc {
@@ -95,11 +95,11 @@
 	mmc-hs200-1_8v;
 	non-removable;
 	bus-width = <8>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gmac1 {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 	phy-handle = <&eth_phy1>;
@@ -112,7 +112,7 @@
 };
 
 &gpio1 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "GPIO-E",	"",
 			  "",		"",
 			  "",		"GPIO-F",
@@ -120,7 +120,7 @@
 };
 
 &gpio2 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "GPIO-H",	"GPIO-I",
 			  "GPIO-L",	"GPIO-G",
 			  "GPIO-K",	"",
@@ -128,7 +128,7 @@
 };
 
 &gpio3 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "",		"",
 			  "",		"",
 			  "GPIO-C",	"",
@@ -136,7 +136,7 @@
 };
 
 &gpio4 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "",		"",
 			  "",		"",
 			  "",		"GPIO-D",
@@ -144,7 +144,7 @@
 };
 
 &gpio5 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "",		"USER-LED-1",
 			  "USER-LED-2",	"",
 			  "",		"GPIO-A",
@@ -152,7 +152,7 @@
 };
 
 &gpio6 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "",		"",
 			  "",		"USER-LED-0",
 			  "",		"",
@@ -160,7 +160,7 @@
 };
 
 &gpio10 {
-	status = "okay";
+	status = "disabled";
 	gpio-line-names = "",		"",
 			  "",		"",
 			  "",		"",
@@ -168,37 +168,37 @@
 };
 
 &i2c0 {
-	status = "okay";
+	status = "disabled";
 	label = "LS-I2C0";
 };
 
 &i2c2 {
-	status = "okay";
+	status = "disabled";
 	label = "LS-I2C1";
 };
 
 &ir {
-	status = "okay";
+	status = "disabled";
 };
 
 &ohci {
-	status = "okay";
+	status = "disabled";
 };
 
 &pcie {
 	reset-gpios = <&gpio4 4 GPIO_ACTIVE_HIGH>;
 	vpcie-supply = <&reg_pcie>;
-	status = "okay";
+	status = "disabled";
 };
 
 &sd0 {
 	bus-width = <4>;
 	cap-sd-highspeed;
-	status = "okay";
+	status = "disabled";
 };
 
 &spi0 {
-	status = "okay";
+	status = "disabled";
 	label = "LS-SPI0";
 };
 
@@ -207,7 +207,7 @@
 };
 
 &uart2 {
-	status = "okay";
+	status = "disabled";
 	label = "LS-UART0";
 };
 /* No optional LS-UART1 on Low Speed Expansion Connector. */
