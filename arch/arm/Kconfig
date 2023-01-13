@@ -1480,6 +1480,20 @@ config TARGET_POPLAR
 	  making it capable of running any commercial set-top solution based on
 	  Linux or Android.
 
+config TARGET_HI3798MV2X
+	bool "Support HiSTB hi3798mv2x series boards"
+	select ARM64
+	select DM
+	select DM_SERIAL
+	select GPIO_EXTRA_HEADER
+	select OF_CONTROL
+	select PL01X_SERIAL
+	imply CMD_DM
+	  help
+	  Support for Hisilicon hi3798mv2x series boards. It features a HI3798mv200
+	  SoC, with 4xA53 CPU, and the high performance Mali MP450 GPU making it
+	  capable of running any commercial set-top solution based on Linux or Android.
+
 config TARGET_LS1012AQDS
 	bool "Support ls1012aqds"
 	select ARCH_LS1012A
@@ -2286,6 +2300,7 @@ source "board/freescale/ls1012ardb/Kconfig"
 source "board/freescale/ls1012afrdm/Kconfig"
 source "board/freescale/lx2160a/Kconfig"
 source "board/grinn/chiliboard/Kconfig"
+source "board/hisilicon/hi3798mv2x/Kconfig"
 source "board/hisilicon/hikey/Kconfig"
 source "board/hisilicon/hikey960/Kconfig"
 source "board/hisilicon/poplar/Kconfig"
