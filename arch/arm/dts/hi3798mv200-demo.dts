@@ -95,7 +95,7 @@
 	mmc-hs200-1_8v;
 	non-removable;
 	bus-width = <8>;
-	status = "disabled";
+	status = "okay";
 };
 
 &gmac1 {
