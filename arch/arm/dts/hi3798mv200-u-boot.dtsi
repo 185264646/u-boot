@@ -10,10 +10,22 @@
 
 #include <dt-bindings/reset/ti-syscon.h>
 
+/ {
+	usb2phy1_port0: usb0 {
+		compatible = "usb-nop-xceiv";
+		clocks = <&clk 0xbc 0 0>;
+		resets = <&rst 0xbc 4 ASSERT_SET>,
+			 <&rst 0xbc 8 ASSERT_SET>;
+		#phy-cells = <0>;
+		status = "okay";
+	};
+};
+
 &soc {
 	clk: clock-controller@8a22000 {
 		compatible = "hisilicon,hi3798mv200-clk";
 		reg = <0x8a22000 0x1000>;
+		#clock-cells = <3>;
 	};
 
 	rst: reset-controller@8a22000 {
@@ -25,12 +37,16 @@
 	usb2: ehci@9890000 {
 		compatible = "generic-ehci";
 		reg = <0x9890000 0x100>;
-		clk = <&clk 0xb8 0>,
-		      <&clk 0xb8 4>,
-		      <&clk 0xb8 5>;
-		resets = <&crg 0xb8 12>,
-			 <&crg 0xb8 16>,
-			 <&crg 0xb8 13>;
+		clocks = <&clk 0xb8 0 0>,
+		      <&clk 0xb8 4 0>,
+		      <&clk 0xb8 5 0>;
+		resets = <&rst 0xb8 12 ASSERT_SET>,
+			 <&rst 0xb8 16 ASSERT_SET>,
+			 <&rst 0xb8 13 ASSERT_SET>;
+		/delete-property/ phys;
+		phys = <&usb2phy1_port0>;
+		/delete-property/ phy-names;
+		phy-names = "usb";
 		status = "okay";
 	};
 };
