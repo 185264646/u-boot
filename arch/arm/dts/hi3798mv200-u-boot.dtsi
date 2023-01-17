@@ -11,6 +11,11 @@
 #include <dt-bindings/reset/ti-syscon.h>
 
 &soc {
+	clk: clock-controller@8a22000 {
+		compatible = "hisilicon,hi3798mv200-clk";
+		reg = <0x8a22000 0x1000>;
+	};
+
 	rst: reset-controller@8a22000 {
 		compatible = "hisilicon,hi3798cv200-reset";
 		reg = <0x8a22000 0x1000>;
@@ -20,7 +25,13 @@
 	usb2: ehci@9890000 {
 		compatible = "generic-ehci";
 		reg = <0x9890000 0x100>;
-		status = "disabled";
+		clk = <&clk 0xb8 0>,
+		      <&clk 0xb8 4>,
+		      <&clk 0xb8 5>;
+		resets = <&crg 0xb8 12>,
+			 <&crg 0xb8 16>,
+			 <&crg 0xb8 13>;
+		status = "okay";
 	};
 };
 

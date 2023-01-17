@@ -1,5 +1,7 @@
 #include <common.h>
 #include <clk-uclass.h>
+#include <dm.h>
+#include <asm/io.h>
 #include <linux/bitops.h>
 
 struct hisi_clk_priv {
@@ -12,31 +14,31 @@ static int hisi_clk_disable(struct clk *clk)
 	u32 val;
 
 	val = readl(priv->base + clk->data);
-	if(clk->flag & 1)
-		val |= BITS(clk->id);
+	if(clk->flags & 1)
+		val |= BIT(clk->id);
 	else
-		val &= ~BITS(clk->id);
-	writel(priv->base + clk->data, val);
+		val &= ~BIT(clk->id);
+	writel(val, priv->base + clk->data);
 
 	return 0;
 }
 
-static hisi_clk_enable(struct clk *clk)
+static int hisi_clk_enable(struct clk *clk)
 {
 	struct hisi_clk_priv *priv = dev_get_priv(clk->dev);
 	u32 val;
 
 	val = readl(priv->base + clk->data);
-	if(!(clk->flag & 1))
-		val |= BITS(clk->id);
+	if(!(clk->flags & 1))
+		val |= BIT(clk->id);
 	else
-		val &= ~BITS(clk->id);
-	writel(priv->base + clk->data, val);
+		val &= ~BIT(clk->id);
+	writel(val, priv->base + clk->data);
 
 	return 0;
 }
 
-static hisi_clk_of_xlate(struct clk *clk,
+static int hisi_clk_of_xlate(struct clk *clk,
 			 struct ofnode_phandle_args *args)
 {
 	if (args->args_count != 3) {
@@ -47,15 +49,15 @@ static hisi_clk_of_xlate(struct clk *clk,
 	/* Use .data field as register offset and .id field as bit shift */
 	clk->data = args->args[0];
 	clk->id = args->args[1];
-	clk->flag = args->args[2];
+	clk->flags = args->args[2];
 
 	return 0;
 }
 
 static const struct clk_ops hisi_clk_clk_ops = {
 	.of_xlate = hisi_clk_of_xlate,
-	.rst_assert = hisi_clk_assert,
-	.rst_deassert = hisi_clk_deassert,
+	.enable = hisi_clk_enable,
+	.disable = hisi_clk_disable,
 };
 
 static const struct udevice_id hisi_clk_ids[] = {
@@ -78,7 +80,7 @@ U_BOOT_DRIVER(hisi_clk) = {
 	.name = "hisilicon_clk",
 	.id = UCLASS_CLK,
 	.of_match = hisi_clk_ids,
-	.ops = &hisi_reset_clk_ops,
+	.ops = &hisi_clk_clk_ops,
 	.probe = hisi_clk_probe,
 	.priv_auto	= sizeof(struct hisi_clk_priv),
 };
