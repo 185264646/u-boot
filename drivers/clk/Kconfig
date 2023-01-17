@@ -166,6 +166,12 @@ config CLK_SCMI
 	  by a SCMI agent based on SCMI clock protocol communication
 	  with a SCMI server.
 
+config CLK_HISILICON
+	bool "Clock controller driver for HiSilicon SoCs"
+	depends on CLK
+	help
+	  Support for clock controller on HiSilicon SoCs.
+
 config CLK_HSDK
 	bool "Enable cgu clock driver for HSDK boards"
 	depends on CLK && TARGET_HSDK
