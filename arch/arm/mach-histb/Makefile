@@ -1,3 +1,3 @@
 # SPDX-License-Identifier:	GPL-2.0+
 
-obj-y += sysmap-hi3798mv200.o
+obj-$(CONFIG_ARCH_HI3798MV2X) += sysmap-hi3798mv2x.o
