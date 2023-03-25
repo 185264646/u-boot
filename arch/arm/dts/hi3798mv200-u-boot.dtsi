@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * U-Boot addition to:
+ *  1) use platform data for the console
+ *
+ */
+
+#include <dt-bindings/reset/ti-syscon.h>
+
+/* The clock driver is missing right noe */
+&uart0 {
+	clock = <75000000>;
+};
