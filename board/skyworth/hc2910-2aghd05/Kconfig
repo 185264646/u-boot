@@ -1,0 +1,15 @@
+if TARGET_HI3798MV2X
+
+config SYS_BOARD
+	default "hc2910-2aghd05"
+
+config SYS_VENDOR
+	default "skyworth"
+
+config SYS_SOC
+	default "hi3798mv2x"
+
+config SYS_CONFIG_NAME
+	default "hc2910-2aghd05"
+
+endif

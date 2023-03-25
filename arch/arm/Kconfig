@@ -1482,6 +1482,18 @@ config TARGET_POPLAR
 	  making it capable of running any commercial set-top solution based on
 	  Linux or Android.
 
+config TARGET_HI3798MV2X
+	bool "Support Hisilicon Hi3798M V2xx Platform"
+	select ARM64
+	select DM
+	select DM_SERIAL
+	select OF_CONTROL
+	select PL01X_SERIAL
+	imply CMD_DM
+	  help
+	  Support for Hisilicon Hi3798M V2xx platform. It features a Hi3798M V2xx
+	  SoC, with 4xA53 CPU, at most 2GB RAM and a Mali GPU.
+
 config TARGET_LS1012AQDS
 	bool "Support ls1012aqds"
 	select ARCH_LS1012A
@@ -2297,6 +2309,7 @@ source "board/myir/mys_6ulx/Kconfig"
 source "board/samsung/common/Kconfig"
 source "board/siemens/common/Kconfig"
 source "board/seeed/npi_imx6ull/Kconfig"
+source "board/skyworth/hc2910-2aghd05/Kconfig"
 source "board/socionext/developerbox/Kconfig"
 source "board/st/stv0991/Kconfig"
 source "board/tcl/sl50/Kconfig"
