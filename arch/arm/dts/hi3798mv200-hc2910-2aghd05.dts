@@ -1,0 +1,33 @@
+/*
+ * DTS File for Skyworth HC2910 with board label 2AGHD05 set-top box.
+ *
+ * Released under the GPLv2 only.
+ * SPDX-License-Identifier: GPL-2.0
+ */
+
+/dts-v1/;
+
+#include "hi3798mv200.dtsi"
+
+/ {
+	// Usually known as Henan Guangdian HC2910
+	model = "Skyworth HC2910 with board label 2AGHD05";
+	compatible = "skyworth,hc2910-2aghd05", "hisilicon,hi3798mv200";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x80000000>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
