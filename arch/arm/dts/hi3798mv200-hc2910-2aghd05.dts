@@ -28,6 +28,23 @@
 	};
 };
 
+&emmc {
+	fifo-depth = <256>;
+	clock-frequency = <200000000>;
+	cap-mmc-highspeed;
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+	non-removable;
+	bus-width = <8>;
+	status = "okay";
+};
+
+&sd0 {
+	bus-width = <4>;
+	cap-sd-highspeed;
+	status = "okay";
+};
+
 &uart0 {
 	status = "okay";
 };
