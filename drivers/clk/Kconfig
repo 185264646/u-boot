@@ -114,6 +114,12 @@ config CLK_ICS8N3QV01
 	  Crystal Oscillator). The output frequency can be programmed via an
 	  I2C interface.
 
+config CLK_HISI
+	bool "Enable Hisilicon Clock Framework"
+	depends on CLK && CLK_CCF
+	help
+	  Support for Hisilicon Clock Framework
+
 config CLK_INTEL
 	bool "Enable clock driver for Intel x86"
 	depends on CLK && X86
@@ -227,6 +233,7 @@ config CLK_ZYNQMP
 source "drivers/clk/analogbits/Kconfig"
 source "drivers/clk/at91/Kconfig"
 source "drivers/clk/exynos/Kconfig"
+source "drivers/clk/hisilicon/Kconfig"
 source "drivers/clk/imx/Kconfig"
 source "drivers/clk/meson/Kconfig"
 source "drivers/clk/microchip/Kconfig"
