@@ -621,6 +621,7 @@ static int higmac_of_to_plat(struct udevice *dev)
 
 static const struct udevice_id higmac_ids[] = {
 	{ .compatible = "hisilicon,hi3798cv200-gmac" },
+	{ .compatible = "hisilicon,hi3798mv200-gmac" },
 	{ }
 };
 
