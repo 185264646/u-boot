@@ -3,6 +3,7 @@
  * Copyright (c) 2019, Linaro Limited
  */
 
+#include <clk.h>
 #include <cpu_func.h>
 #include <log.h>
 #include <malloc.h>
@@ -109,6 +110,7 @@ struct higmac_desc {
 struct higmac_priv {
 	void __iomem *base;
 	void __iomem *macif_ctrl;
+	struct clk_bulk clks;
 	struct reset_ctl rst_phy;
 	struct higmac_desc *rxfq;
 	struct higmac_desc *rxbq;
@@ -472,6 +474,11 @@ static int higmac_hw_init(struct higmac_priv *priv)
 {
 	int ret;
 
+	/* Enable clocks */
+	ret = clk_enable_bulk(&priv->clks);
+	if (ret)
+		return ret;
+
 	/* Initialize hardware queues */
 	ret = higmac_init_hw_queue(priv, RX_FQ);
 	if (ret)
@@ -555,12 +562,16 @@ static int higmac_remove(struct udevice *dev)
 	for (i = 0; i < RX_DESC_NUM; i++)
 		free((void *)(unsigned long)priv->rxfq[i].buf_addr);
 
+	/* Release clocks */
+	clk_release_bulk(&priv->clks);
+
 	return 0;
 }
 
 static int higmac_of_to_plat(struct udevice *dev)
 {
 	struct higmac_priv *priv = dev_get_priv(dev);
+	int ret;
 	ofnode phy_node;
 
 	priv->base = dev_remap_addr_index(dev, 0);
@@ -576,6 +587,10 @@ static int higmac_of_to_plat(struct udevice *dev)
 		return -ENODEV;
 	}
 	priv->phyaddr = ofnode_read_u32_default(phy_node, "reg", 0);
+
+	ret = clk_get_bulk(dev, &priv->clks);
+	if (ret && ret != -ENOSYS)
+		return log_msg_ret("Failed to get clocks\n", ret);
 
 	return reset_get_by_name(dev, "phy", &priv->rst_phy);
 }
