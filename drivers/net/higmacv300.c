@@ -89,6 +89,13 @@
 
 #define MAC_MAX_FRAME_SIZE		1600
 
+enum higmac_rst {
+	HIGMAC_MAC_RST,
+	HIGMAC_MACIF_RST,
+	HIGMAC_PHY_RST,
+	HIGMAC_RST_CNT,
+};
+
 enum higmac_queue {
 	RX_FQ,
 	RX_BQ,
@@ -111,7 +118,7 @@ struct higmac_priv {
 	void __iomem *base;
 	void __iomem *macif_ctrl;
 	struct clk_bulk clks;
-	struct reset_ctl rst_phy;
+	struct reset_ctl rst[HIGMAC_RST_CNT];
 	struct higmac_desc *rxfq;
 	struct higmac_desc *rxbq;
 	struct higmac_desc *txbq;
@@ -479,6 +486,11 @@ static int higmac_hw_init(struct higmac_priv *priv)
 	if (ret)
 		return ret;
 
+	/* Deassert mac_core and mac_ifc resets */
+	reset_deassert(&priv->rst[HIGMAC_MAC_RST]);
+	reset_deassert(&priv->rst[HIGMAC_MACIF_RST]);
+	mdelay(30);
+
 	/* Initialize hardware queues */
 	ret = higmac_init_hw_queue(priv, RX_FQ);
 	if (ret)
@@ -497,11 +509,11 @@ static int higmac_hw_init(struct higmac_priv *priv)
 		goto free_tx_bq;
 
 	/* Reset phy */
-	reset_deassert(&priv->rst_phy);
+	reset_deassert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(10);
-	reset_assert(&priv->rst_phy);
+	reset_assert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(30);
-	reset_deassert(&priv->rst_phy);
+	reset_deassert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(30);
 
 	return 0;
@@ -592,7 +604,19 @@ static int higmac_of_to_plat(struct udevice *dev)
 	if (ret && ret != -ENOSYS)
 		return log_msg_ret("Failed to get clocks\n", ret);
 
-	return reset_get_by_name(dev, "phy", &priv->rst_phy);
+	ret = reset_get_by_name(dev, "mac_core", &priv->rst[HIGMAC_MAC_RST]);
+	if (ret)
+		return log_msg_ret("Failed to get reset for mac_core\n", ret);
+
+	ret = reset_get_by_name(dev, "mac_ifc", &priv->rst[HIGMAC_MACIF_RST]);
+	if (ret)
+		return log_msg_ret("Failed to get reset for mac_ifc\n", ret);
+
+	ret = reset_get_by_name(dev, "phy", &priv->rst[HIGMAC_PHY_RST]);
+	if (ret)
+		return log_msg_ret("Failed to get reset for phy\n", ret);
+
+	return 0;
 }
 
 static const struct udevice_id higmac_ids[] = {
