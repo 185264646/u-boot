@@ -5,18 +5,29 @@
  */
 
 #include <common.h>
+#include <clk.h>
 #include <dm.h>
 #include <dwmmc.h>
 #include <errno.h>
 #include <fdtdec.h>
 #include <malloc.h>
+#include <reset.h>
 #include <asm/global_data.h>
+#include <dm/device_compat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+enum hi6220_dwmmc_clk_type {
+	HI6220_DWMMC_CLK_BIU,
+	HI6220_DWMMC_CLK_CIU,
+	HI6220_DWMMC_CLK_CNT,
+};
 
 struct hi6220_dwmmc_plat {
 	struct mmc_config cfg;
 	struct mmc mmc;
+	struct clk *clks[HI6220_DWMMC_CLK_CNT];
+	struct reset_ctl_bulk rsts;
 };
 
 struct hi6220_dwmmc_priv_data {
@@ -31,7 +42,27 @@ struct hisi_mmc_data {
 static int hi6220_dwmmc_of_to_plat(struct udevice *dev)
 {
 	struct hi6220_dwmmc_priv_data *priv = dev_get_priv(dev);
+	struct hi6220_dwmmc_plat *plat = dev_get_plat(dev);
 	struct dwmci_host *host = &priv->host;
+	int ret;
+
+	plat->clks[HI6220_DWMMC_CLK_BIU] = devm_clk_get(dev, "biu");
+	if (IS_ERR(plat->clks[HI6220_DWMMC_CLK_BIU])) {
+		ret = PTR_ERR(plat->clks[HI6220_DWMMC_CLK_BIU]);
+		if (ret != ENOSYS)
+			return log_msg_ret("Failed to get BIU clock(ret = %d).\n", ret);
+	}
+
+	plat->clks[HI6220_DWMMC_CLK_CIU] = devm_clk_get(dev, "ciu");
+	if (IS_ERR(plat->clks[HI6220_DWMMC_CLK_CIU])) {
+		ret = PTR_ERR(plat->clks[HI6220_DWMMC_CLK_CIU]);
+		if (ret != ENOSYS)
+			return log_msg_ret("Failed to get CIU clock(ret = %d).\n", ret);
+	}
+
+	ret = reset_get_bulk(dev, &plat->rsts);
+	if (ret && ret != -ENOSYS)
+		return log_msg_ret("Failed to get resets(ret = %d)", ret);
 
 	host->name = dev->name;
 	host->ioaddr = dev_read_addr_ptr(dev);
@@ -56,11 +87,31 @@ static int hi6220_dwmmc_probe(struct udevice *dev)
 	struct hi6220_dwmmc_priv_data *priv = dev_get_priv(dev);
 	struct dwmci_host *host = &priv->host;
 	struct hisi_mmc_data *mmc_data;
+	int ret;
 
 	mmc_data = (struct hisi_mmc_data *)dev_get_driver_data(dev);
 
-	/* Use default bus speed due to absence of clk driver */
-	host->bus_hz = mmc_data->clock;
+	ret = clk_prepare_enable(plat->clks[HI6220_DWMMC_CLK_BIU]);
+	if (ret)
+		return log_msg_ret("Failed to enable biu clock(ret = %d).\n", ret);
+
+	ret = clk_prepare_enable(plat->clks[HI6220_DWMMC_CLK_CIU]);
+	if (ret)
+		return log_msg_ret("Failed to enable ciu clock(ret = %d).\n", ret);
+
+	ret = reset_deassert_bulk(&plat->rsts);
+	if (ret)
+		return log_msg_ret("Failed to deassert resets(ret = %d).\n", ret);
+
+	host->bus_hz = clk_get_rate(plat->clks[HI6220_DWMMC_CLK_CIU]);
+	if (host->bus_hz <= 0) {
+		/* Failed to get bus_hz from ccf */
+		/* Use default bus speed */
+		dev_dbg(dev, "Failed to get clock rate from CCF, using default.\n");
+		host->bus_hz = mmc_data->clock;
+	}
+
+	dev_dbg(dev, "bus clock rate: %d.\n", host->bus_hz);
 
 	dwmci_setup_cfg(&plat->cfg, host, host->bus_hz, 400000);
 	host->mmc = &plat->mmc;
