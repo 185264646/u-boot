@@ -170,8 +170,8 @@
 			reg = <0x9840000 0x1000>,
 			      <0x984300c 0x4>;
 			interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&crg HISTB_ETH0_MAC_CLK>,
-				 <&crg HISTB_ETH0_MACIF_CLK>;
+			clocks = <&crg HISTB_GMAC_CLK>,
+				 <&crg HISTB_GMACIF_CLK>;
 			clock-names = "mac_core", "mac_ifc";
 			resets = <&crg 0xcc 0>,
 				 <&crg 0xcc 2>,
