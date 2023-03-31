@@ -4,10 +4,10 @@
 
 The board features the Hi3798M V200 with an integrated quad-core 64-bit ARM
 Cortex A53 processor.
-SOC  Hisilicon Hi3798CV200
+SOC  Hisilicon Hi3798MV200
 CPU  Quad-core ARM Cortex-A53 64 bit
 DRAM DDR3/3L/4 SDRAM interface, maximum 32-bit data width 2 GB
-USB  1x USB 2.0 ports 1x USB 3.0 ports
+USB  1x USB 2.0 ports, 1x USB 3.0 ports
 CONSOLE  USB-micro port for console support
 ETHERNET  1 GBe Ethernet, 1 MBe Ethernet
 WIFI  802.11n with Bluebooth
