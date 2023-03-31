@@ -165,6 +165,38 @@
 			status = "disabled";
 		};
 
+		femac: ethernet@9830000 {
+			compatible = "hisilicon,hi3798mv200-femac", "hisilicon,hisi-femac-v2";
+			reg = <0x9830000 0x1000>, <0x9831300 0x200>;
+			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HISTB_ETH1_MAC_CLK>,
+				 <&crg HISTB_ETH1_MACIF_CLK>;
+			clock-names = "mac_core", "mac_ifc", "phy";
+			resets = <&crg 0xaa 3>;
+			reset-names = "mac", "phy";
+			phy-mode = "mii";
+			phy-handle = <&phy0>;
+			hisilicon,mac-reset-delay-us = <0>;
+			hisilicon,phy-reset-delays-us = <0>;
+			hisilicon,disable-clk-during-phy-reset;
+
+			mdio@1100 {
+				compatible = "hisilicon,hisi-femac-mdio";
+				reg = <0x1100 0x10>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+					/* The address is configurable and will be updated to the address here by the boot loader */
+					phy0: phy@1 {
+					reg = <1>;
+					internal-phy;
+				};
+			};
+		};
+
 		gmac: ethernet@9840000 {
 			compatible = "hisilicon,hi3798mv200-gmac", "hisilicon,hisi-gmac-v2";
 			reg = <0x9840000 0x1000>,
