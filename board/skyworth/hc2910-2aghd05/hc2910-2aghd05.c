@@ -8,26 +8,20 @@
 #include <fdtdec.h>
 #include <init.h>
 #include <asm/system.h>
+#include <linux/io.h>
+
+#define HI3798MV200_PERI_CTRL_BASE 0xf8a20000
+#define SDIO0_LDO_OFFSET 0x11c
+
+static int sdio0_set_ldo(void)
+{
+	// SDIO LDO bypassed, 3.3V
+	writel(HI3798MV200_PERI_CTRL_BASE + SDIO0_LDO_OFFSET, 0x60);
+	return 0;
+}
 
 int board_init(void)
 {
+	sdio0_set_ldo();
 	return 0;
-}
-
-int dram_init_banksize(void)
-{
-	return fdtdec_setup_memory_banksize();
-}
-
-int dram_init(void)
-{
-	if (fdtdec_setup_mem_size_base() != 0)
-		return -EINVAL;
-
-	return 0;
-}
-
-void reset_cpu(void)
-{
-	psci_system_reset();
 }
