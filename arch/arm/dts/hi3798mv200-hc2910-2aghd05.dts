@@ -60,7 +60,7 @@
 	status = "okay";
 };
 
-&sd0 {
+&sd1 {
 	bus-width = <4>;
 	cap-sd-highspeed;
 	status = "okay";

@@ -209,5 +209,17 @@
 			phy-names = "usb";
 			status = "disabled";
 		};
+
+		sd1: mmc@9c40000 {
+			compatible = "snps,dw-mshc";
+			reg = <0x9c40000 0x10000>;
+			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HISTB_SDIO1_CIU_CLK>,
+				 <&crg HISTB_SDIO1_BIU_CLK>;
+			clock-names = "ciu", "biu";
+			resets = <&crg 0x28c 4>;
+			reset-names = "reset";
+			status = "disabled";
+		};
 	};
 };
