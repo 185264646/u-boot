@@ -7,7 +7,7 @@
 
 #include <dt-bindings/reset/ti-syscon.h>
 
-/* U-Boot does not support "snps,dw-mshc" compatible */
+/* The driver in U-Boot does not support "snps,dw-mshc" compatible. */
 &sd0 {
 	compatible = "hisilicon,hi3798mv200-dw-mshc";
 };
@@ -16,7 +16,7 @@
 	compatible = "hisilicon,hi3798mv200-dw-mshc";
 };
 
-/* The clock driver is missing right noe */
+/* The clock driver is missing */
 &uart0 {
 	clock = <75000000>;
 };
