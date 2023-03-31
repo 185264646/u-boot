@@ -1,7 +1,8 @@
+ //SPDX-License-Identifier:	GPL-2.0+
 /*
- * Hisilicon Hi3798MV200 memory map
+ * Hisilicon HiSTB memory map
  *
- * SPDX-License-Identifier:	GPL-2.0+
+ * (C) Copyright 2023 Yang Xiwen <forbidden405@outlook.com>
  */
 
 #include <common.h>

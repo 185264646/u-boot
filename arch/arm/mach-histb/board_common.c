@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Board init file for all histb boards
  *
- * SPDX-License-Identifier:	GPL-2.0+
+ * (C) Copyright 2023 Yang Xiwen <forbidden405@outlook.com>
  */
 
 #include <common.h>
