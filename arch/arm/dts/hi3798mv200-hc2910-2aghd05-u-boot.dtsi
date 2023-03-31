@@ -1,0 +1,6 @@
+#include "hi3798mv200-u-boot.dtsi"
+
+/* The clock driver is missing right now */
+&sd0 {
+	status = "disabled";
+};
