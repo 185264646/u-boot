@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * DTS File for HiSilicon Hi3798mv200 SoC.
  *
  * Released under the GPLv2 only.
- * SPDX-License-Identifier: GPL-2.0
  */
 
 #include <dt-bindings/clock/histb-clock.h>

@@ -1,7 +1,6 @@
+// SPDX-License-Identifier:	GPL-2.0+
 /*
  * Board init file for Skyworth HC2910 2AGHD05
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
