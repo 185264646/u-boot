@@ -39,6 +39,7 @@
 #define HI3798MV200_COMBPHY0_MUX		86
 #define HI3798MV200_SDIO1_MUX			87
 
+static bool fixed_rate_registered;
 static const struct hisi_fixed_rate_clock hi3798mv200_fixed_rate_clks[] = {
 	{ HISTB_OSC_CLK, "clk_osc", 24000000, },
 	{ HISTB_APB_CLK, "clk_apb", 100000000, },
@@ -163,23 +164,27 @@ static int hi3798mv200_clk_init(struct udevice *pdev)
 
 static int hi3798mv200_clk_register(struct udevice *pdev)
 {
-	struct hisi_clock_data clk_data;
+	struct hisi_clock_data *clk_data = dev_get_priv(pdev);
 	int ret;
 
-	ret = hisi_clk_register_fixed_rate(NULL, hi3798mv200_fixed_rate_clks,
-				     ARRAY_SIZE(hi3798mv200_fixed_rate_clks));
-	if (ret)
-		goto done;
+	if (!fixed_rate_registered)
+	{
+		ret = hisi_clk_register_fixed_rate(NULL, hi3798mv200_fixed_rate_clks,
+					     ARRAY_SIZE(hi3798mv200_fixed_rate_clks));
+		if (ret)
+			goto done;
+		fixed_rate_registered = true;
+	}
 
 	ret = hisi_clk_register_mux(NULL, hi3798mv200_mux_clks,
 				ARRAY_SIZE(hi3798mv200_mux_clks),
-				&clk_data);
+				clk_data);
 	if (ret)
 		goto done;
 
 	ret = hisi_clk_register_gate(NULL, hi3798mv200_gate_clks,
 				ARRAY_SIZE(hi3798mv200_gate_clks),
-				&clk_data);
+				clk_data);
 done:
 	return ret;
 }
@@ -195,8 +200,6 @@ static int hi3798mv200_clk_probe(struct udevice *pdev)
 	return hi3798mv200_clk_register(pdev);
 }
 
-static struct clk_ops dummy;
-
 static const struct udevice_id hi3798mv200_crg_compat[] = {
 	{ .compatible = "hisilicon,hi3798mv200-crg", },
 	{ }
@@ -210,9 +213,7 @@ U_BOOT_DRIVER(hi3798mv200_crg) = {
 	.priv_auto	= sizeof(struct hisi_clock_data),
 	.probe		= hi3798mv200_clk_probe,
 	.of_match	= hi3798mv200_crg_compat,
-	.ops		= &dummy,
-	// make sure it probes before sysctrl
-	.flags		= DM_FLAG_PRE_RELOC,
+	.ops		= &ccf_clk_ops,
 };
 
 /* hi3798MV200 sysctrl CRG */
@@ -223,17 +224,27 @@ static const struct hisi_gate_clock hi3798mv200_sysctrl_gate_clks[] = {
 	{ HISTB_TIMER01_CLK, "clk_timer01", "24m",
 		CLK_SET_RATE_PARENT, 0x48, 6, 0, },
 	{ HISTB_UART0_CLK, "clk_uart0", "75m",
-		CLK_SET_RATE_PARENT, 0x48, 10, 0, },
+		CLK_SET_RATE_PARENT, 0x48, 12, 0, },
 };
 
 static int hi3798mv200_sysctrl_clk_register(struct udevice *pdev)
 {
-	struct hisi_clock_data clk_data;
+	struct hisi_clock_data *clk_data = dev_get_priv(pdev);
 	int ret;
+
+	if (!fixed_rate_registered)
+	{
+		ret = hisi_clk_register_fixed_rate(NULL, hi3798mv200_fixed_rate_clks,
+					     ARRAY_SIZE(hi3798mv200_fixed_rate_clks));
+		if (ret)
+			goto done;
+		fixed_rate_registered = true;
+	}
 
 	ret = hisi_clk_register_gate(NULL, hi3798mv200_sysctrl_gate_clks,
 				ARRAY_SIZE(hi3798mv200_sysctrl_gate_clks),
-				&clk_data);
+				clk_data);
+done:
 	return ret;
 }
 
@@ -254,5 +265,5 @@ U_BOOT_DRIVER(hi3798mv200_sysctrl) = {
 	.priv_auto	= sizeof(struct hisi_clock_data),
 	.probe		= hi3798mv200_sysctrl_clk_probe,
 	.of_match	= hi3798mv200_sysctrl_clk_match_table,
-	.ops		= &dummy,
+	.ops		= &ccf_clk_ops,
 };
