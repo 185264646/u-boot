@@ -287,6 +287,7 @@ F:	drivers/serial/serial_mxc.c
 ARM HISILICON
 M:	Peter Griffin <peter.griffin@linaro.org>
 M:	Manivannan Sadhasivam <manivannan.sadhasivam@linaro.org>
+M:	Yang Xiwen <forbidden405@outlook.com>
 S:	Maintained
 F:	arch/arm/cpu/armv8/hisilicon
 F:	arch/arm/include/asm/arch-hi6220/
