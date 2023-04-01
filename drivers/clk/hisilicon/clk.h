@@ -42,7 +42,6 @@ struct hisi_gate_clock {
 	unsigned long		offset;
 	u8			bit_idx;
 	u8			gate_flags;
-	const char		*alias;
 };
 
 int hisi_clk_init(struct udevice *dev, struct hisi_clock_data *);
