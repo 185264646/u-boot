@@ -3,6 +3,7 @@
  * Copyright (c) 2019, Linaro Limited
  */
 
+#include <clk.h>
 #include <cpu_func.h>
 #include <log.h>
 #include <malloc.h>
@@ -10,6 +11,7 @@
 #include <asm/io.h>
 #include <common.h>
 #include <console.h>
+#include <dm/device_compat.h>
 #include <linux/bitops.h>
 #include <linux/bug.h>
 #include <linux/delay.h>
@@ -88,6 +90,13 @@
 
 #define MAC_MAX_FRAME_SIZE		1600
 
+enum higmac_rst {
+	HIGMAC_MAC_RST,
+	HIGMAC_MACIF_RST,
+	HIGMAC_PHY_RST,
+	HIGMAC_RST_CNT,
+};
+
 enum higmac_queue {
 	RX_FQ,
 	RX_BQ,
@@ -109,7 +118,8 @@ struct higmac_desc {
 struct higmac_priv {
 	void __iomem *base;
 	void __iomem *macif_ctrl;
-	struct reset_ctl rst_phy;
+	struct clk_bulk clks;
+	struct reset_ctl rst[HIGMAC_RST_CNT];
 	struct higmac_desc *rxfq;
 	struct higmac_desc *rxbq;
 	struct higmac_desc *txbq;
@@ -472,6 +482,16 @@ static int higmac_hw_init(struct higmac_priv *priv)
 {
 	int ret;
 
+	/* Enable clocks */
+	ret = clk_enable_bulk(&priv->clks);
+	if (ret)
+		return ret;
+
+	/* Deassert mac_core and mac_ifc resets */
+	reset_deassert(&priv->rst[HIGMAC_MAC_RST]);
+	reset_deassert(&priv->rst[HIGMAC_MACIF_RST]);
+	mdelay(30);
+
 	/* Initialize hardware queues */
 	ret = higmac_init_hw_queue(priv, RX_FQ);
 	if (ret)
@@ -490,11 +510,11 @@ static int higmac_hw_init(struct higmac_priv *priv)
 		goto free_tx_bq;
 
 	/* Reset phy */
-	reset_deassert(&priv->rst_phy);
+	reset_deassert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(10);
-	reset_assert(&priv->rst_phy);
+	reset_assert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(30);
-	reset_deassert(&priv->rst_phy);
+	reset_deassert(&priv->rst[HIGMAC_PHY_RST]);
 	mdelay(30);
 
 	return 0;
@@ -555,12 +575,16 @@ static int higmac_remove(struct udevice *dev)
 	for (i = 0; i < RX_DESC_NUM; i++)
 		free((void *)(unsigned long)priv->rxfq[i].buf_addr);
 
+	/* Release clocks */
+	clk_release_bulk(&priv->clks);
+
 	return 0;
 }
 
 static int higmac_of_to_plat(struct udevice *dev)
 {
 	struct higmac_priv *priv = dev_get_priv(dev);
+	int ret;
 	ofnode phy_node;
 
 	priv->base = dev_remap_addr_index(dev, 0);
@@ -577,11 +601,40 @@ static int higmac_of_to_plat(struct udevice *dev)
 	}
 	priv->phyaddr = ofnode_read_u32_default(phy_node, "reg", 0);
 
-	return reset_get_by_name(dev, "phy", &priv->rst_phy);
+	ret = clk_get_bulk(dev, &priv->clks);
+	if (ret && ret != -ENOSYS)
+	{
+		dev_err(dev, "Failed to get clocks(ret = %d)\n", ret);
+		return ret;
+	}
+
+	ret = reset_get_by_name(dev, "mac_core", &priv->rst[HIGMAC_MAC_RST]);
+	if (ret)
+	{
+		dev_err(dev, "Failed to get reset for mac_core(ret = %d)\n", ret);
+		return ret;
+	}
+
+	ret = reset_get_by_name(dev, "mac_ifc", &priv->rst[HIGMAC_MACIF_RST]);
+	if (ret)
+	{
+		dev_err(dev, "Failed to get reset for mac_ifc(ret = %d)\n", ret);
+		return ret;
+	}
+
+	ret = reset_get_by_name(dev, "phy", &priv->rst[HIGMAC_PHY_RST]);
+	if (ret)
+	{
+		dev_err(dev, "Failed to get reset for phy(ret = %d)\n", ret);
+		return ret;
+	}
+
+	return 0;
 }
 
 static const struct udevice_id higmac_ids[] = {
 	{ .compatible = "hisilicon,hi3798cv200-gmac" },
+	{ .compatible = "hisilicon,hi3798mv200-gmac" },
 	{ }
 };
 
