@@ -7,7 +7,6 @@
  */
 
 #include <dm.h>
-#include <addr_map.h>
 #include <clk.h>
 #include <miiphy.h>
 #include <net.h>
@@ -167,11 +166,11 @@ static void hisi_femac_port_init(struct hisi_femac_priv *priv)
 static void hisi_femac_rx_refill(struct hisi_femac_priv *priv)
 {
 	int i;
-	phys_addr_t addr;
+	ulong addr;
 
 	for (i = 0; i < HW_RX_FIFO_DEPTH; i++)
 	{
-		addr = addrmap_virt_to_phys(net_rx_packets[i]);
+		addr = (ulong) net_rx_packets[i];
 		writel(addr, priv->port_base + IQ_ADDR);
 	}
 }
@@ -191,7 +190,7 @@ static int hisi_femac_start(struct udevice *dev)
 static int hisi_femac_send(struct udevice *dev, void *packet, int length)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	phys_addr_t addr = addrmap_virt_to_phys(packet);
+	ulong addr = (ulong) packet;
 	int reg;
 
 	// write packet address
@@ -230,7 +229,7 @@ static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 static int hisi_femac_free_pkt(struct udevice *dev, uchar *packet, int length)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	phys_addr_t addr = addrmap_virt_to_phys(packet);
+	ulong addr = (ulong) packet;
 
 	// Tell hardware the packet can be reused
 	writel(addr, priv->port_base + IQ_ADDR);
