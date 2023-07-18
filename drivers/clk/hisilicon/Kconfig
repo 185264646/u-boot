@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+if CLK_HISI
+config COMMON_CLK_HI3798MV200
+	tristate "Hi3798MV200 CRG Driver"
+	select RESET_HISILICON
+	depends on ARCH_HISTB
+	help
+	  Build the CRG driver for Hi3798MV200.
+
+endif
