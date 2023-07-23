@@ -7,10 +7,12 @@
  */
 
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <clk.h>
 #include <miiphy.h>
 #include <net.h>
 #include <reset.h>
+#include <wait_bit.h>
 #include <asm/io.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
@@ -90,7 +92,7 @@
 #define RXQ_NUM				128
 
 #define PHY_RESET_DELAYS_PROPERTY	"hisilicon,phy-reset-delays-us"
-#define MAC_RESET_ASSERT_PERIOD		10000
+#define MAC_RESET_ASSERT_PERIOD		200000
 
 enum phy_reset_delays {
 	PRE_DELAY,
@@ -99,16 +101,25 @@ enum phy_reset_delays {
 	DELAYS_NUM,
 };
 
+enum clk_type {
+	CLK_MAC,
+	CLK_BUS,
+	CLK_PHY,
+	CLK_NUM,
+};
+
 struct hisi_femac_priv {
 	void __iomem *port_base;
 	void __iomem *glb_base;
-	struct clk_bulk clks;
+	struct clk *clks[CLK_NUM];
 	struct reset_ctl *mac_rst;
 	struct reset_ctl *phy_rst;
 	u32 phy_reset_delays[DELAYS_NUM];
 	u32 mac_reset_delay;
 
 	struct phy_device *phy;
+
+	u32 link_status;
 };
 
 static void __maybe_unused hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
@@ -175,15 +186,77 @@ static void hisi_femac_rx_refill(struct hisi_femac_priv *priv)
 	}
 }
 
-static int hisi_femac_start(struct udevice *dev)
+static void hisi_femac_adjust_link(struct udevice *dev)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
+	struct phy_device *phy = priv->phy;
+	u32 status = 0;
 
-	// deassert internal reset
-	writel(0, priv->glb_base + GLB_SOFT_RESET);
+	if (phy->link)
+		status |= MAC_PORTSET_LINKED;
+	if (phy->duplex == DUPLEX_FULL)
+		status |= MAC_PORTSET_DUPLEX_FULL;
+	if (phy->speed == SPEED_100)
+		status |= MAC_PORTSET_SPEED_100M;
 
-	hisi_femac_port_init(priv);
+	writel(status, priv->port_base + MAC_PORTSET);
+}
+
+static int hisi_femac_port_reset(struct hisi_femac_priv *priv)
+{
+	u32 val;
+
+	val = readl(priv->glb_base + GLB_SOFT_RESET);
+	val |= SOFT_RESET_ALL;
+	writel(val, priv->glb_base + GLB_SOFT_RESET);
+
+	udelay(800);
+
+	val &= ~SOFT_RESET_ALL;
+	writel(val, priv->glb_base + GLB_SOFT_RESET);
+
+	return 0;
+}
+
+static int hisi_femac_set_hw_mac_addr(struct udevice *dev)
+{
+	struct hisi_femac_priv *priv = dev_get_priv(dev);
+	struct eth_pdata *plat = dev_get_plat(dev);
+	unsigned char *mac = plat->enetaddr;
+	u32 reg;
+
+	reg = mac[1] | (mac[0] << 8);
+	writel(reg, priv->glb_base + GLB_HOSTMAC_H16);
+
+	reg = mac[5] | (mac[4] << 8) | (mac[3] << 16) | (mac[2] << 24);
+	writel(reg, priv->glb_base + GLB_HOSTMAC_L32);
+
+	return 0;
+}
+
+static int hisi_femac_start(struct udevice *dev)
+{
+	int ret;
+	struct hisi_femac_priv *priv = dev_get_priv(dev);
+
+	hisi_femac_port_reset(priv);
+	hisi_femac_set_hw_mac_addr(dev);
 	hisi_femac_rx_refill(priv);
+
+	ret = phy_startup(priv->phy);
+	if (ret)
+		return log_msg_ret("Failed to startup phy", ret);
+
+	if (!priv->phy->link) {
+		debug("%s: link down\n", __func__);
+		return -ENODEV;
+	}
+
+	hisi_femac_adjust_link(dev);
+
+	writel(IRQ_ENA_PORT0_MASK, priv->glb_base + GLB_IRQ_RAW);
+	hisi_femac_irq_enable(priv, IRQ_ENA_ALL | IRQ_ENA_PORT0 | DEF_INT_MASK);
+
 	return 0;
 }
 
@@ -191,18 +264,21 @@ static int hisi_femac_send(struct udevice *dev, void *packet, int length)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
 	ulong addr = (ulong) packet;
-	int reg;
+	int ret;
+
+	// flush cache
+	flush_cache(addr, length + ETH_FCS_LEN);
 
 	// write packet address
-	writel(addr, priv->glb_base + EQ_ADDR);
+	writel(addr, priv->port_base + EQ_ADDR);
 
 	// write packet length (and send it)
-	writel(length, priv->glb_base + EQFRM_LEN);
+	writel(length + ETH_FCS_LEN, priv->port_base + EQFRM_LEN);
 
-	// Loop until FIFO is empty
-	do
-		reg = readl(priv->glb_base + GLB_IRQ_RAW);
-	while (reg & IRQ_INT_TX_FIFO_EMPTY);
+	// wait until FIFO is empty
+	ret = wait_for_bit_le32(priv->glb_base + GLB_IRQ_RAW, IRQ_INT_TX_PER_PACKET, true, 50, false);
+	if (ret == -ETIMEDOUT)
+		return log_msg_ret("FIFO timeout", ret);
 
 	return 0;
 }
@@ -210,20 +286,24 @@ static int hisi_femac_send(struct udevice *dev, void *packet, int length)
 static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	int val, index;
+	int val, index, length;
 
-	val = readl(priv->port_base + GLB_IRQ_RAW);
+	val = readl(priv->glb_base + GLB_IRQ_RAW);
 	if (!(val & IRQ_INT_RX_RDY))
 		return -EAGAIN;
 
-	// Tell hardware we will process the packet
-	writel(IRQ_INT_RX_RDY, priv->port_base + GLB_IRQ_RAW);
-
-	val = readl(priv->glb_base + IQFRM_DES);
+	val = readl(priv->port_base + IQFRM_DES);
 	index = (val & RX_FRAME_IN_INDEX_MASK) >> 12;
+	length = val & RX_FRAME_LEN_MASK;
+
+	// invalidate cache
+	invalidate_dcache_range((ulong) net_rx_packets[index], (ulong) net_rx_packets[index] + length);
 	*packetp = net_rx_packets[index];
 
-	return val & RX_FRAME_LEN_MASK;
+	// Tell hardware we will process the packet
+	writel(IRQ_INT_RX_RDY, priv->glb_base + GLB_IRQ_RAW);
+
+	return length;
 }
 
 static int hisi_femac_free_pkt(struct udevice *dev, uchar *packet, int length)
@@ -245,26 +325,15 @@ static void hisi_femac_stop(struct udevice *dev)
 	writel(SOFT_RESET_ALL, priv->glb_base + GLB_SOFT_RESET);
 }
 
-static int hisi_femac_set_hw_mac_addr(struct udevice *dev)
-{
-	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	struct eth_pdata *plat = dev_get_plat(dev);
-	unsigned char *mac = plat->enetaddr;
-	u32 reg;
-
-	reg = mac[1] | (mac[0] << 8);
-	writel(reg, priv->glb_base + GLB_HOSTMAC_H16);
-
-	reg = mac[5] | (mac[4] << 8) | (mac[3] << 16) | (mac[2] << 24);
-	writel(reg, priv->glb_base + GLB_HOSTMAC_L32);
-
-	return 0;
-}
-
 int hisi_femac_of_to_plat(struct udevice *dev)
 {
-	int ret;
+	int ret, i;
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
+	static const char *clk_strs[] = {
+		[CLK_MAC] = "mac",
+		[CLK_BUS] = "bus",
+		[CLK_PHY] = "phy",
+	};
 
 	priv->port_base = dev_remap_addr_name(dev, "port");
 	if (IS_ERR(priv->port_base))
@@ -274,9 +343,13 @@ int hisi_femac_of_to_plat(struct udevice *dev)
 	if (IS_ERR(priv->glb_base))
 		return log_msg_ret("Failed to remap global address space", PTR_ERR(priv->glb_base));
 
-	ret = clk_get_bulk(dev, &priv->clks);
-	if (ret < 0)
-		return log_msg_ret("Failed to get clk bulks", ret);
+	for (i = 0; i < ARRAY_SIZE(clk_strs); i++) {
+		priv->clks[i] = devm_clk_get(dev, clk_strs[i]);
+		if (IS_ERR(priv->clks[i])) {
+			dev_err(dev, "Error getting clock %s\n", clk_strs[i]);
+			return log_msg_ret("Failed to get clocks", PTR_ERR(priv->clks[i]));
+		}
+	}
 
 	priv->mac_rst = devm_reset_control_get(dev, "mac");
 	if (IS_ERR(priv->mac_rst))
@@ -305,6 +378,14 @@ static int hisi_femac_phy_reset(struct hisi_femac_priv *priv)
 	u32 *delays = priv->phy_reset_delays;
 	int ret;
 
+	// Disable MAC clk before phy reset
+	ret = clk_disable(priv->clks[CLK_MAC]);
+	if (ret < 0)
+		return log_msg_ret("Failed to disable MAC clock", ret);
+	ret = clk_disable(priv->clks[CLK_BUS]);
+	if (ret < 0)
+		return log_msg_ret("Failed to disable bus clock", ret);
+
 	udelay(delays[PRE_DELAY]);
 
 	ret = reset_assert(rst);
@@ -319,18 +400,27 @@ static int hisi_femac_phy_reset(struct hisi_femac_priv *priv)
 
 	udelay(delays[POST_DELAY]);
 
+	ret = clk_enable(priv->clks[CLK_MAC]);
+	if (ret < 0)
+		return log_msg_ret("Failed to enable MAC clock", ret);
+	ret = clk_enable(priv->clks[CLK_BUS]);
+	if (ret < 0)
+		return log_msg_ret("Failed to enable MAC bus clock", ret);
+
 	return 0;
 }
 
 int hisi_femac_probe(struct udevice *dev)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	int ret;
+	int ret, i;
 
 	// Enable clocks
-	ret = clk_enable_bulk(&priv->clks);
-	if (ret < 0)
-		return log_msg_ret("Failed to enable clks", ret);
+	for (i = 0; i < CLK_NUM; i++) {
+		ret = clk_prepare_enable(priv->clks[i]);
+		if (ret < 0)
+			return log_msg_ret("Failed to enable clks", ret);
+	}
 
 	// Reset MAC
 	ret = reset_assert(priv->mac_rst);
@@ -343,7 +433,6 @@ int hisi_femac_probe(struct udevice *dev)
 	if (ret < 0)
 		return log_msg_ret("Failed to deassert MAC reset", ret);
 
-	// Reset PHY
 	ret = hisi_femac_phy_reset(priv);
 	if (ret < 0)
 		return log_msg_ret("Failed to reset phy", ret);
@@ -352,6 +441,7 @@ int hisi_femac_probe(struct udevice *dev)
 	if (!priv->phy)
 		return log_msg_ret("Failed to connect to phy", -EINVAL);
 
+	hisi_femac_port_init(priv);
 	return 0;
 }
 
