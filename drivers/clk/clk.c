@@ -10,7 +10,6 @@
 #include <clk.h>
 #include <clk-uclass.h>
 #include <log.h>
-#include <dm/device.h>
 #include <dm/uclass.h>
 #include <dm/lists.h>
 #include <dm/device-internal.h>
@@ -115,11 +114,18 @@ int ccf_clk_set_parent(struct clk *clk, struct clk *parent)
 static int ccf_clk_endisable(struct clk *clk, bool enable)
 {
 	struct clk *c;
+	const struct clk_ops *ops = clk_dev_ops(clk->dev);
 	int err = clk_get_by_id(clk->id, &c);
 
 	if (err)
 		return err;
-	return enable ? clk_enable(c) : clk_disable(c);
+
+	if (enable && ops->enable)
+		return ops->enable(c);
+	else if (!enable && ops->disable)
+		return ops->disable(c);
+
+	return 0;
 }
 
 int ccf_clk_enable(struct clk *clk)
