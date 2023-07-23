@@ -8,6 +8,7 @@
 #ifndef _CLK_H_
 #define _CLK_H_
 
+#include <dm/device.h>
 #include <dm/ofnode.h>
 #include <linux/err.h>
 #include <linux/errno.h>
@@ -258,6 +259,17 @@ int clk_release_all(struct clk *clk, int count);
  */
 void devm_clk_put(struct udevice *dev, struct clk *clk);
 
+/**
+ * clk_dev_ops - get ops of a clock
+ * @dev: clock device
+ *
+ * Return: ops of the clk
+ */
+static inline const struct clk_ops *clk_dev_ops(struct udevice *dev)
+{
+	return (const struct clk_ops *)dev->driver->ops;
+}
+
 #else
 
 static inline int clk_get_by_phandle(struct udevice *dev, const
@@ -314,6 +326,11 @@ static inline int clk_release_all(struct clk *clk, int count)
 
 static inline void devm_clk_put(struct udevice *dev, struct clk *clk)
 {
+}
+
+static inline const struct clk_ops *clk_dev_ops(struct udevice *dev)
+{
+	return ERR_PTR(-ENOSYS);
 }
 #endif
 
