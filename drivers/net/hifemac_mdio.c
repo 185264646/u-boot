@@ -79,8 +79,8 @@ static int hisi_femac_mdio_of_to_plat(struct udevice *dev)
 
 	data->clk = devm_clk_get(dev, NULL);
 	if (IS_ERR(data->clk)) {
-		ret = PTR_ERR(data->clk);
-		return ret;
+		// clk is optional
+		data->clk = NULL;
 	}
 
 	return 0;
