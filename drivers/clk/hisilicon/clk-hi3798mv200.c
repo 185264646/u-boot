@@ -131,6 +131,8 @@ static const struct hisi_gate_clock hi3798mv200_gate_clks[] = {
 		CLK_SET_RATE_PARENT, 0xd0, 1, 0, },
 	{ HI3798MV200_FEMACIF_CLK, "clk_femacif", "clk_ahb",
 		CLK_SET_RATE_PARENT, 0xd0, 0, 0, },
+	{ HI3798MV200_FEPHY_CLK, "clk_fephy", NULL,
+		CLK_SET_RATE_PARENT, 0x388, 0, 0, },
 	/* COMBPHY */
 	{ HISTB_COMBPHY0_CLK, "clk_combphy0", "combphy0_mux",
 		CLK_SET_RATE_PARENT, 0x188, 0, 0, },
