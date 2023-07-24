@@ -76,6 +76,7 @@
 #define HISTB_SDIO1_SAMPLE_CLK		54
 
 /* Hi3798MV200 specific clocks */
+#define HI3798MV200_FEPHY_CLK		256
 
 // reuse clocks of histb
 #define HI3798MV200_GMAC_CLK		HISTB_ETH0_MAC_CLK
