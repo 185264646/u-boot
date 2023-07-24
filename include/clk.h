@@ -225,8 +225,9 @@ static inline struct clk *devm_clk_get_optional(struct udevice *dev,
 						const char *id)
 {
 	struct clk *clk = devm_clk_get(dev, id);
+	int ret = PTR_ERR(clk);
 
-	if (PTR_ERR(clk) == -ENODATA)
+	if (ret == -ENODATA || ret == -ENOENT)
 		return NULL;
 
 	return clk;
