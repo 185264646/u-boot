@@ -170,8 +170,8 @@
 			reg = <0x9840000 0x1000>,
 			      <0x984300c 0x4>;
 			interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&crg HISTB_ETH0_MAC_CLK>,
-				 <&crg HISTB_ETH0_MACIF_CLK>;
+			clocks = <&crg HI3798MV200_GMAC_CLK>,
+				 <&crg HI3798MV200_GMACIF_CLK>;
 			clock-names = "mac_core", "mac_ifc";
 			resets = <&crg 0xcc 0>,
 				 <&crg 0xcc 2>,
@@ -207,6 +207,34 @@
 			reset-names = "bus", "phy", "utmi";
 			phys = <&usb2_phy1>;
 			phy-names = "usb";
+			status = "disabled";
+		};
+
+		femac: ethernet@9c30000 {
+			compatible = "hisilicon,hi3798mv200-femac", "hisilicon,hisi-femac-v2", "simple-bus";
+			reg = <0x9c30000 0x1100 0x9c31300 0x200>;
+			reg-names = "port", "glb";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+			interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&crg HI3798MV200_FEMAC_CLK>,
+				 <&crg HI3798MV200_FEMACIF_CLK>,
+				 <&crg HI3798MV200_FEPHY_CLK>;
+			clock-names = "mac", "bus", "phy";
+			resets = <&crg 0xcc 3>,
+				 <&crg 0x388 4>;
+			reset-names = "mac", "phy";
+
+			status = "disabled";
+		};
+
+		femac_mdio: mdio@9c31100 {
+			compatible = "hisilicon,hisi-femac-mdio";
+			reg = <0x9c31100 0x20>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
 			status = "disabled";
 		};
 
