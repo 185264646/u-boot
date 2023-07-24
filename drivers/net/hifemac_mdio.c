@@ -5,8 +5,8 @@
  * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  */
 
-#include <clk.h>
 #include <dm.h>
+#include <clk.h>
 #include <miiphy.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
@@ -74,14 +74,11 @@ static int hisi_femac_mdio_of_to_plat(struct udevice *dev)
 	data->membase = dev_remap_addr(dev);
 	if (IS_ERR(data->membase)) {
 		ret = PTR_ERR(data->membase);
-		return ret;
+		return log_msg_ret("Failed to remap base addr", ret);
 	}
 
-	data->clk = devm_clk_get(dev, NULL);
-	if (IS_ERR(data->clk)) {
-		// clk is optional
-		data->clk = NULL;
-	}
+	// clk is optional
+	data->clk = devm_clk_get_optional(dev, NULL);
 
 	return 0;
 }
@@ -93,7 +90,7 @@ static int hisi_femac_mdio_probe(struct udevice *dev)
 
 	ret = clk_prepare_enable(data->clk);
 	if (ret)
-		return ret;
+		return log_msg_ret("Failed to enable clk", ret);
 
 	return 0;
 }
