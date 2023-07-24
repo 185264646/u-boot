@@ -4,16 +4,17 @@
  * Adapted from linux
  *
  * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ * Copyright (c) 2023 Yang Xiwen <forbidden405@outlook.com>
  */
 
 #include <dm.h>
-#include <dm/device_compat.h>
 #include <clk.h>
 #include <miiphy.h>
 #include <net.h>
 #include <reset.h>
 #include <wait_bit.h>
 #include <asm/io.h>
+#include <dm/device_compat.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
 
@@ -92,6 +93,7 @@
 #define RXQ_NUM				128
 
 #define PHY_RESET_DELAYS_PROPERTY	"hisilicon,phy-reset-delays-us"
+#define MAC_RESET_DELAY_PROPERTY	"hisilicon,mac-reset-delay-us"
 #define MAC_RESET_ASSERT_PERIOD		200000
 
 enum phy_reset_delays {
@@ -122,7 +124,7 @@ struct hisi_femac_priv {
 	u32 link_status;
 };
 
-static void __maybe_unused hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
+static void hisi_femac_irq_enable(struct hisi_femac_priv *priv, int irqs)
 {
 	u32 val;
 
@@ -367,8 +369,11 @@ int hisi_femac_of_to_plat(struct udevice *dev)
 	if (ret < 0)
 		return log_msg_ret("Failed to get PHY reset delays", ret);
 
-	// TODO: allow customize it in device tree
-	priv->mac_reset_delay = MAC_RESET_ASSERT_PERIOD;
+	priv->mac_reset_delay = dev_read_u32_default(
+			dev,
+			MAC_RESET_DELAY_PROPERTY,
+			MAC_RESET_ASSERT_PERIOD);
+
 	return 0;
 }
 
@@ -433,10 +438,12 @@ int hisi_femac_probe(struct udevice *dev)
 	if (ret < 0)
 		return log_msg_ret("Failed to deassert MAC reset", ret);
 
+	// Reset PHY
 	ret = hisi_femac_phy_reset(priv);
 	if (ret < 0)
 		return log_msg_ret("Failed to reset phy", ret);
 
+	// Connect to PHY
 	priv->phy = dm_eth_phy_connect(dev);
 	if (!priv->phy)
 		return log_msg_ret("Failed to connect to phy", -EINVAL);
