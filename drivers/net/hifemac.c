@@ -181,9 +181,8 @@ static void hisi_femac_rx_refill(struct hisi_femac_priv *priv)
 	int i;
 	ulong addr;
 
-	for (i = 0; i < HW_RX_FIFO_DEPTH; i++)
-	{
-		addr = (ulong) net_rx_packets[i];
+	for (i = 0; i < HW_RX_FIFO_DEPTH; i++) {
+		addr = (ulong)net_rx_packets[i];
 		writel(addr, priv->port_base + IQ_ADDR);
 	}
 }
@@ -265,7 +264,7 @@ static int hisi_femac_start(struct udevice *dev)
 static int hisi_femac_send(struct udevice *dev, void *packet, int length)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	ulong addr = (ulong) packet;
+	ulong addr = (ulong)packet;
 	int ret;
 
 	// flush cache
@@ -299,7 +298,7 @@ static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 	length = val & RX_FRAME_LEN_MASK;
 
 	// invalidate cache
-	invalidate_dcache_range((ulong) net_rx_packets[index], (ulong) net_rx_packets[index] + length);
+	invalidate_dcache_range((ulong)net_rx_packets[index], (ulong)net_rx_packets[index] + length);
 	*packetp = net_rx_packets[index];
 
 	// Tell hardware we will process the packet
@@ -311,7 +310,7 @@ static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 static int hisi_femac_free_pkt(struct udevice *dev, uchar *packet, int length)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	ulong addr = (ulong) packet;
+	ulong addr = (ulong)packet;
 
 	// Tell hardware the packet can be reused
 	writel(addr, priv->port_base + IQ_ADDR);
@@ -331,7 +330,7 @@ int hisi_femac_of_to_plat(struct udevice *dev)
 {
 	int ret, i;
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	static const char *clk_strs[] = {
+	static const char * const clk_strs[] = {
 		[CLK_MAC] = "mac",
 		[CLK_BUS] = "bus",
 		[CLK_PHY] = "phy",
@@ -361,18 +360,16 @@ int hisi_femac_of_to_plat(struct udevice *dev)
 	if (IS_ERR(priv->phy_rst))
 		return log_msg_ret("Failed to get PHY reset", PTR_ERR(priv->phy_rst));
 
-	ret = dev_read_u32_array(
-			dev,
-			PHY_RESET_DELAYS_PROPERTY,
-			priv->phy_reset_delays,
-			DELAYS_NUM);
+	ret = dev_read_u32_array(dev,
+				 PHY_RESET_DELAYS_PROPERTY,
+				 priv->phy_reset_delays,
+				 DELAYS_NUM);
 	if (ret < 0)
 		return log_msg_ret("Failed to get PHY reset delays", ret);
 
-	priv->mac_reset_delay = dev_read_u32_default(
-			dev,
-			MAC_RESET_DELAY_PROPERTY,
-			MAC_RESET_ASSERT_PERIOD);
+	priv->mac_reset_delay = dev_read_u32_default(dev,
+						     MAC_RESET_DELAY_PROPERTY,
+						     MAC_RESET_ASSERT_PERIOD);
 
 	return 0;
 }
