@@ -14,6 +14,7 @@
 #include <dm/uclass.h>
 #include <dm/lists.h>
 #include <dm/device-internal.h>
+#include <linux/clk-provider.h>
 
 int clk_register(struct clk *clk, const char *drv_name,
 		 const char *name, const char *parent_name)
@@ -115,11 +116,20 @@ int ccf_clk_set_parent(struct clk *clk, struct clk *parent)
 static int ccf_clk_endisable(struct clk *clk, bool enable)
 {
 	struct clk *c;
+	const struct clk_ops *ops;
 	int err = clk_get_by_id(clk->id, &c);
 
 	if (err)
 		return err;
-	return enable ? clk_enable(c) : clk_disable(c);
+	else
+		ops = clk_dev_ops(c->dev);
+
+	if (enable && ops->enable)
+		return ops->enable(c);
+	else if (!enable && ops->disable)
+		return ops->disable(c);
+
+	return -ENOSYS;
 }
 
 int ccf_clk_enable(struct clk *clk)
