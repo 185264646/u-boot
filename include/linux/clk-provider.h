@@ -21,6 +21,11 @@ static inline void clk_dm(ulong id, struct clk *clk)
 		clk->id = id;
 }
 
+static inline const struct clk_ops *clk_dev_ops(struct udevice *dev)
+{
+	return (const struct clk_ops *)dev->driver->ops;
+}
+
 /*
  * flags used across common struct clk.  these flags should only affect the
  * top-level framework.  custom flags for dealing with hardware specifics

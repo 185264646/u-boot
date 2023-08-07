@@ -25,11 +25,6 @@
 #include <linux/clk-provider.h>
 #include <linux/err.h>
 
-static inline const struct clk_ops *clk_dev_ops(struct udevice *dev)
-{
-	return (const struct clk_ops *)dev->driver->ops;
-}
-
 struct clk *dev_get_clk_ptr(struct udevice *dev)
 {
 	return (struct clk *)dev_get_uclass_priv(dev);
