@@ -32,6 +32,7 @@ config WATCHDOG_TIMEOUT_MSECS
 	default 16000 if ARCH_SUNXI
 	default 5376 if ULP_WATCHDOG
 	default 15000 if ARCH_BCM283X
+	range 500 180000 if ARCH_HISI
 	default 60000
 	help
 	  Watchdog timeout in msec
@@ -170,6 +171,15 @@ config WDT_GPIO
 	  Support for external watchdog fed by toggling a gpio. See
 	  doc/device-tree-bindings/watchdog/gpio-wdt.txt for
 	  information on how to describe the watchdog in device tree.
+
+config WDT_HISI
+	bool "HiSilicon watchdog timer support"
+	depends on WDT
+	depends on CLK && DM_RESET
+	imply WATCHDOG
+	help
+	  Select this to enable HiSilicon watchdog timer.
+	  Currently supports Hi3798MV200 only.
 
 config WDT_MAX6370
 	bool "MAX6370 watchdog timer support"
