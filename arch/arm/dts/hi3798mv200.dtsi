@@ -75,6 +75,15 @@
 			      IRQ_TYPE_LEVEL_LOW)>;
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		sml_reserved: sml@c00000 {
+			reg = <0xc00000 0x40000>;
+			no-map;
+		};
+	};
 	/* Initialization is done in boot loader */
 	usb2_phy1: hsusb1_phy {
 		compatible = "usb-nop-xceiv";
@@ -89,18 +98,12 @@
 		#size-cells = <1>;
 		ranges = <0x0 0x0 0xf0000000 0x10000000>;
 
-		crg: clock-reset-controller@8a22000 {
-			compatible = "hisilicon,hi3798mv200-crg", "syscon", "simple-mfd";
-			reg = <0x8a22000 0x1000>;
-			#clock-cells = <1>;
-			#reset-cells = <2>;
-		};
-
 		sysctrl: system-controller@8000000 {
 			compatible = "hisilicon,hi3798mv200-sysctrl", "syscon";
 			reg = <0x8000000 0x1000>;
 			#clock-cells = <1>;
 			#reset-cells = <2>;
+			clocks = <&crg HISTB_OSC_CLK>;
 		};
 
 		perictrl: peripheral-controller@8a20000 {
@@ -130,11 +133,52 @@
 			pinctrl-single,function-mask = <7>;
 		};
 
+		crg: clock-reset-controller@8a22000 {
+			compatible = "hisilicon,hi3798mv200-crg", "syscon", "simple-mfd";
+			reg = <0x8a22000 0x1000>;
+			#clock-cells = <1>;
+			#reset-cells = <2>;
+		};
+
+		wdg0: watchdog@8a2c000 {
+			compatible = "arm,sp805";
+			reg = <0x8a2c000 0x1000>;
+			clocks = <&crg HISTB_WDG0_CLK>;
+			resets = <&crg 0x178 4>;
+			status = "disabled";
+		};
+
+		wdg1: watchdog@8a2d000 {
+			compatible = "arm,sp805";
+			reg = <0x8a2d000 0x1000>;
+			status = "disabled";
+		};
+
 		uart0: serial@8b00000 {
 			compatible = "arm,pl011", "arm,primecell";
 			reg = <0x8b00000 0x1000>;
 			interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&sysctrl HISTB_UART0_CLK>;
+			clock-names = "apb_pclk";
+			status = "disabled";
+		};
+
+		/* UART1 does not exist */
+
+		uart2: serial@8b02000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x8b02000 0x1000>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HISTB_UART2_CLK>;
+			clock-names = "apb_pclk";
+			status = "disabled";
+		};
+
+		uart3: serial@8b03000 {
+			compatible = "arm,pl011", "arm,primecell";
+			reg = <0x8b03000 0x1000>;
+			interrupts = <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&sysctrl HISTB_UART3_CLK>;
 			clock-names = "apb_pclk";
 			status = "disabled";
 		};
@@ -210,6 +254,38 @@
 			status = "disabled";
 		};
 
+		femac: ethernet@9c30000 {
+			compatible = "hisilicon,hi3798mv200-femac";
+			reg = <0x9c30000 0x1000>, <0x9c31300 0x200>;
+			reg-names = "port", "glb";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x0 0x9c30000 0x10000>;
+			clocks = <&crg HI3798MV200_FEMAC_CLK>,
+				 <&crg HI3798MV200_FEMACIF_CLK>,
+				 <&crg HI3798MV200_FEPHY_CLK>;
+			clock-names = "mac", "bus", "phy";
+			resets = <&crg 0xd0 3>, <&crg 0x388 4>;
+			reset-names = "mac", "phy";
+			phy-handle = <&fephy>;
+			hisilicon,phy-reset-delays-us = <10000 10000 300000>;
+			hisilicon,mac-reset-delay-us = <100>;
+			status = "disabled";
+
+			mdio: mdio@1100 {
+				compatible = "hisilicon,hisi-femac-mdio";
+				reg = <0x1100 0x20>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+
+				fephy: phy@1 {
+					reg = <1>;
+					#phy-cells = <0>;
+				};
+			};
+		};
+
 		sd1: mmc@9c40000 {
 			compatible = "snps,dw-mshc";
 			reg = <0x9c40000 0x10000>;
@@ -220,6 +296,11 @@
 			resets = <&crg 0x28c 4>;
 			reset-names = "reset";
 			status = "disabled";
+		};
+
+		sram: sram@fff0000 {
+			compatible = "mmio-sram";
+			reg = <0xfff0000 0xe000>; /* 56 KiB IRAM at 0xFFFF0000 */
 		};
 	};
 };
