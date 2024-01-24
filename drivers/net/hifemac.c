@@ -348,15 +348,16 @@ static int hisi_femac_send(struct udevice *dev, void *packet, int length)
 static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 {
 	struct hisi_femac_priv *priv = dev_get_priv(dev);
-	int val, index, length;
+	int index, length;
+	u32 val;
 
 	val = readl(priv->glb_base + GLB_IRQ_RAW);
 	if (!(val & IRQ_INT_RX_RDY))
 		return -EAGAIN;
 
 	val = readl(priv->port_base + IQFRM_DES);
-	index = (val & RX_FRAME_IN_INDEX_MASK) >> 12;
-	length = val & RX_FRAME_LEN_MASK;
+	index = FIELD_GET(RX_FRAME_IN_INDEX_MASK, val);
+	length = FIELD_GET(RX_FRAME_LEN_MASK, val);
 
 	// invalidate cache
 	invalidate_dcache_range((ulong)net_rx_packets[index], (ulong)net_rx_packets[index] + length);
