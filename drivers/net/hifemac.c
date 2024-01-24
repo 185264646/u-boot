@@ -51,6 +51,7 @@
 #define EQFRM_LEN			0x0364
 #define ADDRQ_STAT			0x036C
 #define TX_CNT_INUSE_MASK		GENMASK(5, 0)
+#define RX_CNT_INUSE_MASK		GENMASK(13, 8)
 #define BIT_TX_READY			BIT(24)
 #define BIT_RX_READY			BIT(25)
 /* global control register list */
@@ -351,8 +352,9 @@ static int hisi_femac_recv(struct udevice *dev, int flags, uchar **packetp)
 	int index, length;
 	u32 val;
 
-	val = readl(priv->glb_base + GLB_IRQ_RAW);
-	if (!(val & IRQ_INT_RX_RDY))
+	// return -EAGAIN if rx queue is empty
+	val = readl(priv->port_base + ADDRQ_STAT);
+	if (FIELD_GET(RX_CNT_INUSE_MASK, val) == 0)
 		return -EAGAIN;
 
 	val = readl(priv->port_base + IQFRM_DES);
