@@ -136,6 +136,13 @@ config SPL_PIPE3_PHY
 	  This PHY is found on omap devices supporting SATA such as dra7, am57x
 	  and omap5
 
+config PHY_HISI_INNO_USB2
+	bool "Support HiSTB SoCs' INNO USB2 PHY"
+	depends on PHY
+	depends on USB
+	help
+	  Support for the INNO USB2 PHY found on HiSTB SoCs
+
 config AM654_PHY
 	tristate "TI AM654 SERDES support"
 	depends on PHY && ARCH_K3
