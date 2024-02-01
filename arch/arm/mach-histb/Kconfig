@@ -30,10 +30,20 @@ config TARGET_HC2910_2AGHD05
 	  - 3 LED - power, Wifi, Lock(?)
 	  - 1x Fast Ethernet Controller, 1x GBe Ethernet Controller
 
+config TARGET_HC2910_2AGHD07
+	bool "Skyworth HC2910 with board label 2AGHD07"
+	help
+	  Support for Skyworth HC2910 with board label 2AGHD07. Compared to 2AGHD05, this board:
+	  - No USB 3.0, 2xUSB 2.0 ports
+	  - No on-board Ethernet switch, only one RJ45 port
+	  - No SD card slot
+
 endchoice
 
 endif
 
 source "board/skyworth/hc2910-2aghd05/Kconfig"
+
+source "board/skyworth/hc2910-2aghd07/Kconfig"
 
 endif
