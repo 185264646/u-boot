@@ -272,8 +272,7 @@ U_BOOT_DRIVER(dwc3_generic_host) = {
 };
 #endif
 
-void dwc3_imx8mp_glue_configure(struct udevice *dev, int index,
-				enum usb_dr_mode mode)
+void dwc3_imx8mp_glue_configure(struct udevice *dev, ofnode child, int index)
 {
 /* USB glue registers */
 #define USB_CTRL0		0x00
@@ -323,8 +322,7 @@ struct dwc3_glue_ops imx8mp_ops = {
 	.glue_configure = dwc3_imx8mp_glue_configure,
 };
 
-void dwc3_ti_glue_configure(struct udevice *dev, int index,
-			    enum usb_dr_mode mode)
+void dwc3_ti_glue_configure(struct udevice *dev, ofnode child, int index)
 {
 #define USBOTGSS_UTMI_OTG_STATUS		0x0084
 #define USBOTGSS_UTMI_OTG_OFFSET		0x0480
@@ -348,6 +346,7 @@ enum dwc3_omap_utmi_mode {
 	u32 reg;
 	u32 utmi_mode;
 	u32 utmi_status_offset = USBOTGSS_UTMI_OTG_STATUS;
+	enum usb_dr_mode mode = usb_get_dr_mode(child);
 
 	struct dwc3_glue_data *glue = dev_get_plat(dev);
 	void *base = map_physmem(glue->regs, 0x10000, MAP_NOCACHE);
@@ -577,12 +576,9 @@ int dwc3_glue_probe(struct udevice *dev)
 	}
 
 	while (child) {
-		enum usb_dr_mode dr_mode;
-
-		dr_mode = usb_get_dr_mode(dev_ofnode(child));
-		device_find_next_child(&child);
 		if (ops && ops->glue_configure)
-			ops->glue_configure(dev, index, dr_mode);
+			ops->glue_configure(dev, dev_ofnode(child), index);
+		device_find_next_child(&child);
 		index++;
 	}
 
