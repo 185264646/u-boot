@@ -272,8 +272,7 @@ U_BOOT_DRIVER(dwc3_generic_host) = {
 };
 #endif
 
-void dwc3_imx8mp_glue_configure(struct udevice *dev, int index,
-				enum usb_dr_mode mode)
+void dwc3_imx8mp_glue_configure(struct udevice *dev, ofnode child, int index)
 {
 /* USB glue registers */
 #define USB_CTRL0		0x00
@@ -323,8 +322,7 @@ struct dwc3_glue_ops imx8mp_ops = {
 	.glue_configure = dwc3_imx8mp_glue_configure,
 };
 
-void dwc3_ti_glue_configure(struct udevice *dev, int index,
-			    enum usb_dr_mode mode)
+void dwc3_ti_glue_configure(struct udevice *dev, ofnode child, int index)
 {
 #define USBOTGSS_UTMI_OTG_STATUS		0x0084
 #define USBOTGSS_UTMI_OTG_OFFSET		0x0480
@@ -348,6 +346,7 @@ enum dwc3_omap_utmi_mode {
 	u32 reg;
 	u32 utmi_mode;
 	u32 utmi_status_offset = USBOTGSS_UTMI_OTG_STATUS;
+	enum usb_dr_mode mode = usb_get_dr_mode(child);
 
 	struct dwc3_glue_data *glue = dev_get_plat(dev);
 	void *base = map_physmem(glue->regs, 0x10000, MAP_NOCACHE);
@@ -418,6 +417,45 @@ static int dwc3_rk_glue_get_ctrl_dev(struct udevice *dev, ofnode *node)
 
 struct dwc3_glue_ops rk_ops = {
 	.glue_get_ctrl_dev = dwc3_rk_glue_get_ctrl_dev,
+};
+
+static void dwc3_hi3798mv200_glue_configure(struct udevice *dev, ofnode child, int index)
+{
+#define HI3798MV200_PERI_CTRL_ADDR	0xf8a20000
+#define HI3798MV200_PERI_USB5		0x134
+#define USB3_U3_PORT_DISABLE		BIT(5)
+#define USB3_U2_PORT_DISABLE		BIT(4)
+
+	// Disable super-speed port if maximum speed is high-speed
+	void __iomem *peri_base = map_physmem(HI3798MV200_PERI_CTRL_ADDR, 0x1000, MAP_NOCACHE);
+	enum usb_device_speed speed = usb_get_maximum_speed(child);
+	u32 reg;
+
+	reg = readl(peri_base + HI3798MV200_PERI_USB5);
+	reg &= ~(USB3_U3_PORT_DISABLE | USB3_U2_PORT_DISABLE);
+
+	switch (speed) {
+	case USB_SPEED_LOW:
+	case USB_SPEED_FULL:
+	case USB_SPEED_HIGH:
+		// disable super-speed port
+		reg |= USB3_U3_PORT_DISABLE;
+		pr_info("%s: super-speed port disabled.\n", __func__);
+		break;
+
+	case USB_SPEED_SUPER:
+		break;
+
+	default:
+		pr_warn("%s: unknown speed class %d.\n", __func__, speed);
+	}
+
+	writel(reg, peri_base + HI3798MV200_PERI_USB5);
+	unmap_physmem(peri_base, MAP_NOCACHE);
+}
+
+const struct dwc3_glue_ops hi3798mv200_ops = {
+	.glue_configure = dwc3_hi3798mv200_glue_configure,
 };
 
 static int dwc3_glue_bind_common(struct udevice *parent, ofnode node)
@@ -577,12 +615,9 @@ int dwc3_glue_probe(struct udevice *dev)
 	}
 
 	while (child) {
-		enum usb_dr_mode dr_mode;
-
-		dr_mode = usb_get_dr_mode(dev_ofnode(child));
-		device_find_next_child(&child);
 		if (ops && ops->glue_configure)
-			ops->glue_configure(dev, index, dr_mode);
+			ops->glue_configure(dev, dev_ofnode(child), index);
+		device_find_next_child(&child);
 		index++;
 	}
 
@@ -615,6 +650,7 @@ static const struct udevice_id dwc3_glue_ids[] = {
 	{ .compatible = "fsl,imx8mp-dwc3", .data = (ulong)&imx8mp_ops },
 	{ .compatible = "fsl,imx8mq-dwc3" },
 	{ .compatible = "intel,tangier-dwc3" },
+	{ .compatible = "hisilicon,hi3798mv200-dwc3", .data = (ulong)&hi3798mv200_ops },
 	{ }
 };
 

@@ -22,8 +22,7 @@ struct dwc3_glue_data {
 
 struct dwc3_glue_ops {
 	int (*glue_get_ctrl_dev)(struct udevice *parent, ofnode *node);
-	void (*glue_configure)(struct udevice *dev, int index,
-			       enum usb_dr_mode mode);
+	void (*glue_configure)(struct udevice *parent, ofnode node, int index);
 };
 
 int dwc3_glue_bind(struct udevice *parent);

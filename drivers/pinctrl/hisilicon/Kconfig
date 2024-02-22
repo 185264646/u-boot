@@ -1,0 +1,21 @@
+config PINCTRL_HISILICON
+	bool
+
+config PINCTRL_HISTB
+	bool "HiSilicon HiSTB pinctrl framework"
+	depends on PINCTRL
+	select PINCTRL_HISILICON
+	imply PINCONF
+	help
+	  Support HiSTB SoCs IOCONFIG module
+
+menu "HiSTB pinctrl drivers"
+	depends on PINCTRL_HISTB
+
+config PINCTRL_HI3798MV2X
+	bool "HiSilicon Hi3798MV2X pinctrl driver"
+	depends on ARCH_HI3798MV2X
+	help
+	  Support IOCONFIG on Hi3798MV2X SoCs
+
+endmenu
