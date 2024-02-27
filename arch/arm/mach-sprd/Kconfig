@@ -1,0 +1,16 @@
+if ARCH_SPRD
+
+choice
+	prompt "SpreadTrum UNISOC platfrom select"
+
+config ARCH_SHARKL3
+	bool "SharkL3 Platform"
+	select ARM64
+	help
+	  SpreadTrum Unisoc SharkL3 Platform
+
+endchoice
+
+source arch/arm/mach-sprd/sharkl3/Kconfig
+
+endif

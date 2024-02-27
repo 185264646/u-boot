@@ -1,0 +1,41 @@
+if ARCH_SHARKL3
+
+choice
+	prompt "Select an SoC based on Sharkl3 platfoem"
+
+config ARCH_SC9863A
+	bool "UNISOC Sharkl3 SC9863A"
+	help
+	  SpreadTrum Sharkl3 SoC SC9863A.
+	  Features:
+	    - 8-core Cortex-A55 CPU @ 1.6GHz
+	    - Imagination PowerVR GE8300 GPU
+	    - LPDDR3@933MHz or LPDDR4x@1333MHz
+	    - eMMC 5.1
+	    - Cat.7 LTE modem
+	    - WiFi-5, BT, GNSS, FM
+
+endchoice
+
+if ARCH_SC9863A
+
+choice
+	prompt "Select a board based on SC9863A"
+
+config TARGET_ALLDOCUBE_T1011S
+	bool "ALLDOCUBE iPlay20(T1011S) tablet"
+	select LINUX_KERNEL_IMAGE_HEADER
+	help
+	  ALLDOCUBE iPlay20 tablet.
+	    - SoC: SC9863A
+	    - Storage: 6 GiB LPDDR4 RAM + 128 GiB eMMC 5.1
+	    - Display: 10.1' 1920x1200 IPS LCD
+	    - Battery: 6000 mAh
+
+endchoice
+
+endif
+
+source board/alldocube/t1011s/Kconfig
+
+endif

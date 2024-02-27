@@ -12,6 +12,7 @@ obj-$(CONFIG_USB_MUSB_MT85XX) += mt85xx.o
 obj-$(CONFIG_USB_MUSB_OMAP2PLUS) += omap2430.o
 obj-$(CONFIG_USB_MUSB_PIC32) += pic32.o
 obj-$(CONFIG_USB_MUSB_SUNXI) += sunxi.o
+obj-$(CONFIG_USB_MUSB_SPRD) += sprd.o #sprd_musbhsdma.o
 obj-$(CONFIG_USB_MUSB_TI) += ti-musb.o
 obj-$(CONFIG_USB_MUSB_UX500) += ux500.o
 

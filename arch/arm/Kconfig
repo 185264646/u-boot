@@ -1119,6 +1119,14 @@ config ARCH_SOCFPGA
 	imply SPL_SPI
 	imply L2X0_CACHE
 
+config ARCH_SPRD
+	bool "SpreadTrum UNISOC SoCs"
+	select OF_CONTROL
+	select OF_SEPARATE
+	select DM
+	select DM_SERIAL
+	imply CMD_DM
+
 config ARCH_SUNXI
 	bool "Support sunxi (Allwinner) SoCs"
 	select BINMAN
@@ -2250,6 +2258,8 @@ source "arch/arm/mach-s5pc1xx/Kconfig"
 source "arch/arm/mach-snapdragon/Kconfig"
 
 source "arch/arm/mach-socfpga/Kconfig"
+
+source "arch/arm/mach-sprd/Kconfig"
 
 source "arch/arm/mach-sti/Kconfig"
 

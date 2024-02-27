@@ -297,6 +297,8 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		/* byte aligned */
 		readsb(fifo, dst, len);
 	}
+
+	printf("%s: dst: %s\n", __func__, dst);
 }
 #endif
 
@@ -1527,7 +1529,8 @@ static int __devinit musb_core_init(u16 musb_type, struct musb *musb)
 /*-------------------------------------------------------------------------*/
 
 #if defined(CONFIG_SOC_OMAP2430) || defined(CFG_SOC_OMAP3430) || \
-	defined(CFG_ARCH_OMAP4) || defined(CONFIG_ARCH_U8500)
+	defined(CFG_ARCH_OMAP4) || defined(CONFIG_ARCH_U8500) || \
+	CONFIG_IS_ENABLED(USB_MUSB_SPRD)
 
 static irqreturn_t generic_interrupt(int irq, void *__hci)
 {
@@ -1993,7 +1996,7 @@ musb_init_controller(struct musb_hdrc_platform_data *plat, struct device *dev,
 	pm_runtime_get_sync(musb->controller);
 
 #ifndef CONFIG_USB_MUSB_PIO_ONLY
-	if (use_dma && dev->dma_mask) {
+	if (use_dma) {
 		struct dma_controller	*c;
 
 		c = dma_controller_create(musb, musb->mregs);

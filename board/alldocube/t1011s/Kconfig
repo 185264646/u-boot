@@ -1,0 +1,18 @@
+if TARGET_ALLDOCUBE_T1011S
+
+config SYS_BOARD
+	default "t1011s"
+
+config SYS_VENDOR
+	default "alldocube"
+
+config SYS_SOC
+	default "SC9863A"
+
+config SYS_CONFIG_NAME
+	default "alldocube-t1011s"
+
+config LNX_KRNL_IMG_TEXT_OFFSET_BASE
+	default 0x80000000
+
+endif
