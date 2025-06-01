@@ -437,7 +437,7 @@ clk_resolve_parent_clk(struct udevice *dev, const char *name)
 		return name;
 
 	ret = clk_get_by_name(dev, name, &clk);
-	if (!clk.dev)
+	if (ret)
 		return name;
 
 	return clk.dev->name;
