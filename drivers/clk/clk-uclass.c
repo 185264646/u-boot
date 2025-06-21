@@ -499,6 +499,7 @@ struct clk *clk_get_parent(struct clk *clk)
 {
 	struct udevice *pdev;
 	struct clk *pclk;
+	int ret;
 
 	debug("%s(clk=%p)\n", __func__, clk);
 	if (!clk_valid(clk))
@@ -506,7 +507,23 @@ struct clk *clk_get_parent(struct clk *clk)
 
 	pdev = dev_get_parent(clk->dev);
 	if (!pdev)
-		return ERR_PTR(-ENODEV);
+	{
+		clk = dev_get_clk_ptr(clk->dev);
+		if (!clk->parent_name)
+			return ERR_PTR(-ENODEV);
+
+		debug("%s: Trying to reparent to %s\n", __func__, clk->parent_name);
+		ret = uclass_get_device_by_name(UCLASS_CLK, clk->parent_name, &pdev);
+		free(clk->parent_name);
+		clk->parent_name = NULL;
+		if (ret)
+			return ERR_PTR(ret);
+
+		ret = device_reparent(clk->dev, pdev);
+		if (ret)
+			return ERR_PTR(ret);
+	}
+
 	pclk = dev_get_clk_ptr(pdev);
 	if (!pclk)
 		return ERR_PTR(-ENODEV);

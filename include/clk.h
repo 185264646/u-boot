@@ -47,6 +47,7 @@ struct udevice;
 /**
  * struct clk - A handle to (allowing control of) a single clock.
  * @dev: The device which implements the clock signal.
+ * @parent_name: The name of the parent.
  * @rate: The clock rate (in HZ).
  * @flags: Flags used across common clock structure (e.g. %CLK_)
  *         Clock IP blocks specific flags (i.e. mux, div, gate, etc) are defined
@@ -72,6 +73,7 @@ struct udevice;
  */
 struct clk {
 	struct udevice *dev;
+	char *parent_name;
 	long long rate;	/* in HZ */
 	u32 flags;
 	int enable_count;
