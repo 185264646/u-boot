@@ -112,16 +112,18 @@ static int phy_meson_gxbb_usb2_power_on(struct phy *phy)
 			   REG_CTRL_SOF_TOGGLE_OUT,
 			   REG_CTRL_SOF_TOGGLE_OUT);
 
-	/* Set host mode */
-	regmap_update_bits(priv->regmap, REG_ADP_BC,
-			   REG_ADP_BC_ACA_ENABLE,
-			   REG_ADP_BC_ACA_ENABLE);
-	udelay(ACA_ENABLE_COMPLETE_TIME);
+	if (!device_is_compatible(dev, "amlogic,meson8-usb2-phy")) {
+		/* Set host mode */
+		regmap_update_bits(priv->regmap, REG_ADP_BC,
+				   REG_ADP_BC_ACA_ENABLE,
+				   REG_ADP_BC_ACA_ENABLE);
+		udelay(ACA_ENABLE_COMPLETE_TIME);
 
-	regmap_read(priv->regmap, REG_ADP_BC, &val);
-	if (val & REG_ADP_BC_ACA_PIN_FLOAT) {
-		pr_err("Error powering on GXBB USB PHY\n");
-		return -EINVAL;
+		regmap_read(priv->regmap, REG_ADP_BC, &val);
+		if (val & REG_ADP_BC_ACA_PIN_FLOAT) {
+			pr_err("Error powering on GXBB USB PHY\n");
+			return -EINVAL;
+		}
 	}
 
 	return 0;

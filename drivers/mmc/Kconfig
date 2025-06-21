@@ -333,6 +333,12 @@ config MMC_MESON_GX
 	help
 	 Support for EMMC host controller on Meson GX ARM SoCs platform (S905)
 
+config MMC_MESON_MX
+	bool "Meson MX EMMC controller support"
+	depends on ARCH_MESON
+	help
+	 Support for EMMC host controller on Meson MX ARM SoCs platform (S805)
+
 config MMC_MXC
 	bool "Freescale i.MX21/27/31 or MPC512x Multimedia Card support"
 	help

@@ -1,0 +1,59 @@
+/ {
+	alias {
+		tick-timer = &timer_abcde;
+	};
+};
+
+&usb0 {
+	hnp-srp-disable;
+};
+
+&usb1 {
+	hnp-srp-disable;
+};
+
+&timer_abcde {
+	clock-frequency = <1000000>;
+};
+
+/ {
+	binman {
+		multiple-images;
+		/* create a legacy u-boot image to be chain-loaded by vendor u-boot */
+		image1 {
+			mkimage {
+				filename = "u-boot.uimg";
+				args = "-A arm -n u-boot -O linux -T multi -a 0x12000000 -e 0x12000000";
+				multiple-data-files;
+
+				section@0 {
+					blob {
+						filename = "u-boot-dtb.bin";
+						compress = "gzip";
+					};
+				};
+
+				section@1 {
+					fill {
+						fill-byte = [00];
+						size = <1>;
+					};
+				};
+
+				section@2 {
+					blob {
+						filename = "dummy.dtb";
+					};
+				};
+			};
+		};
+
+		/* Create ucl compressed image to act as TPL loaded by vendor SPL */
+		image2 {
+			blob {
+				filename = "u-boot.bin";
+				compress = "ucl";
+			};
+		};
+	};
+};

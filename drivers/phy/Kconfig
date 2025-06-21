@@ -183,12 +183,12 @@ config PHY_STM32_USBPHYC
 	  selected by an USB switch.
 
 config MESON_GXBB_USB_PHY
-	bool "Amlogic Meson GXBB USB PHY"
-	depends on PHY && ARCH_MESON && MESON_GXBB
+	bool "Amlogic Meson8, Meson8b, Meson8m2 and GXBB USB PHY"
+	depends on PHY && ARCH_MESON
 	imply REGMAP
 	help
-	  This is the generic phy driver for the Amlogic Meson GXBB
-	  USB2 PHY.
+	  This is the generic phy driver for the Amlogic Meson8, Meson8b,
+	  Meson8m2 and GXBB USB2 PHY.
 
 config MESON_GXL_USB_PHY
 	bool "Amlogic Meson GXL USB PHYs"

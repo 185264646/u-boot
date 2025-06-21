@@ -1,0 +1,5 @@
+#include "meson8b-u-boot.dtsi"
+
+&usb0_phy {
+	compatible = "amlogic,meson8-usb2-phy", "amlogic,meson-mx-usb2-phy";
+};

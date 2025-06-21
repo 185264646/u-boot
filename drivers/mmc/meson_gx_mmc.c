@@ -243,13 +243,10 @@ static const struct dm_mmc_ops meson_dm_mmc_ops = {
 static int meson_mmc_of_to_plat(struct udevice *dev)
 {
 	struct meson_mmc_plat *pdata = dev_get_plat(dev);
-	fdt_addr_t addr;
 
-	addr = dev_read_addr(dev);
-	if (addr == FDT_ADDR_T_NONE)
+	pdata->regbase = dev_read_addr_ptr(dev);
+	if (!pdata->regbase)
 		return -EINVAL;
-
-	pdata->regbase = (void *)addr;
 
 	return 0;
 }

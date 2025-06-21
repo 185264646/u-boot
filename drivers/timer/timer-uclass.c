@@ -62,6 +62,10 @@ static int timer_pre_probe(struct udevice *dev)
 		if (!dev_has_ofnode(dev))
 			return 0;
 
+		uc_priv->clock_rate = dev_read_u32_default(dev, "clock-frequency", 0);
+		if (uc_priv->clock_rate)
+			return 0;
+
 		err = clk_get_by_index(dev, 0, &timer_clk);
 		if (!err) {
 			ret = clk_get_rate(&timer_clk);
@@ -70,8 +74,6 @@ static int timer_pre_probe(struct udevice *dev)
 				return 0;
 			}
 		}
-
-		uc_priv->clock_rate = dev_read_u32_default(dev, "clock-frequency", 0);
 	}
 
 	return 0;
