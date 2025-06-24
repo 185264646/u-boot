@@ -276,6 +276,9 @@ mkfwumdata-objs := mkfwumdata.o generated/lib/crc32.o
 HOSTLDLIBS_mkfwumdata += -luuid
 hostprogs-always-$(CONFIG_TOOLS_MKFWUMDATA) += mkfwumdata
 
+hostprogs-$(CONFIG_TOOLS_UCLPACK) += uclpack
+HOSTLDLIBS_uclpack += -lucl
+
 # We build some files with extra pedantic flags to try to minimize things
 # that won't build on some weird host compiler -- though there are lots of
 # exceptions for files that aren't complaint.
