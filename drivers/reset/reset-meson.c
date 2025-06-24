@@ -95,6 +95,10 @@ static const struct udevice_id meson_reset_ids[] = {
 		.compatible = "amlogic,meson-a1-reset",
 		.data = (ulong)&meson_a1_data,
 	},
+	{
+		.compatible = "amlogic,meson8b-reset",
+		.data = (ulong)&meson_gxbb_data,
+	},
 	{ }
 };
 
