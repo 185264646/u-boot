@@ -203,4 +203,11 @@ config TOOLS_MKFWUMDATA
 	  update on the board. The installation method depends on
 	  the platform.
 
+config TOOLS_UCLPACK
+	bool "Build uclpack command"
+	def_bool n
+	help
+	  This command is used to create ucl compressed archives. Currently
+	  this is only needed for Amlogic Meson8X platform to create a TPL image.
+
 endmenu
