@@ -3,3 +3,13 @@
 &usb0_phy {
 	compatible = "amlogic,meson8-usb2-phy", "amlogic,meson-mx-usb2-phy";
 };
+
+&ethmac {
+	status = "disabled";
+};
+
+/ {
+	ethmac {
+		compatible = "aml,eth";
+	};
+};
