@@ -50,6 +50,8 @@
 
 		/* Create ucl compressed image to act as TPL loaded by vendor SPL */
 		image2 {
+			filename = "u-boot-ucl.img";
+
 			blob {
 				filename = "u-boot.bin";
 				compress = "ucl";

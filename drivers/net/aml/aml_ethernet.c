@@ -21,6 +21,7 @@
  *
  */
 
+#define DEBUG
 #include <linux/types.h>
 #include <linux/delay.h>
 #include <cpu_func.h>
@@ -28,6 +29,7 @@
 #include <malloc.h>
 #include <net.h>
 #include <dm.h>
+#include <dm/lists.h>
 
 #include <asm/u-boot.h>
 #include <asm/cache.h>
@@ -37,10 +39,14 @@
  *
  * arch/arm/include/asm/arch-m*
  */
+#include <eth_phy.h>
 #include "io.h"
 #include "aml_eth_reg.h"
 #include "aml_eth_pinmux.h"
 #include "aml_emac_lan8700.h"
+
+#include "../designware.h"
+#include "miiphy.h"
 
 /**
  * arch/arm/cpu/aml_meson
@@ -60,7 +66,7 @@ static struct _tx_desc*	g_current_tx = NULL;
 static int g_nInitialized = 0 ;
 static unsigned int g_phy_Identifier = 0;
 static unsigned int   g_speed_enforce=0;
-static unsigned int  g_mdc_clock_range=ETH_MAC_4_GMII_Addr_CR_100_150;
+static unsigned int  g_mdc_clock_range=ETH_MAC_4_GMII_Addr_CR_150_250;
 #define PHY_SMSC_8700			0x7c0c4
 #define PHY_SMSC_8720			0x7c0f1
 #define PHY_ATHEROS_8032		0x004dd023
@@ -126,6 +132,7 @@ static unsigned int get_cpuid(){
 
 */
 
+#if 0
 static void hardware_reset(void)
 {
 	/* PHY hardware reset */
@@ -148,6 +155,7 @@ static void hardware_reset(void)
 
 	return;
 }
+#endif
 static void phy_reg_wr(int phyad, unsigned int reg, unsigned int val)
 {
 	unsigned long busy = 0, tmp = 0;
@@ -189,6 +197,55 @@ static unsigned int phy_reg_rd(int phyad, unsigned int reg)
 	tmp = readl(ETH_MAC_5_GMII_Data);
 
 	return tmp;
+}
+
+static int mdio_phy_reg_rd(struct udevice *bus, int addr, int devad, int reg)
+{
+	return phy_reg_rd(addr, reg);
+};
+
+static int mdio_phy_reg_wr(struct udevice *bus, int addr, int devad, int reg, u16 val)
+{
+	phy_reg_wr(addr, reg, val);
+
+	return 0;
+}
+
+static const struct mdio_ops aml_eth_mdio_ops = {
+	.read = mdio_phy_reg_rd,
+	.write = mdio_phy_reg_wr,
+};
+
+U_BOOT_DRIVER(aml_eth_mdio) = {
+	.name = "aml_eth_mdio",
+	.id = UCLASS_MDIO,
+	.ops = &aml_eth_mdio_ops,
+};
+
+static int aml_dm_mdio_init(const char *name, void *priv)
+{
+	struct udevice *dev = priv;
+	ofnode node;
+	int ret;
+
+	ofnode_for_each_subnode(node, dev_ofnode(dev)) {
+		const char *subnode_name = ofnode_get_name(node);
+		struct udevice *mdiodev;
+
+		if (strcmp(subnode_name, "mdio"))
+			continue;
+
+		ret = device_bind_driver_to_node(dev, "aml_eth_mdio",
+						 subnode_name, node, &mdiodev);
+		if (ret)
+			debug("%s: not able to bind mdio device node\n", __func__);
+
+		return 0;
+	}
+
+	printf("%s: mdio node is missing, registering legacy mdio bus", __func__);
+
+	return -EINVAL;
 }
 #ifdef INTERNAL_PHY
 static void initTSTMODE(int phyad)
@@ -326,14 +383,14 @@ static void set_mac_mode(void)
 	printf("set_mac_mode(%d)\n", g_mac_mode);
 	if (g_mac_mode == 2) {
 		/* RGMII */
-		writel((ETH_MAC_0_Configuration_PS_GMII | ETH_MAC_0_Configuration_DM| ETH_MAC_0_Configuration_RE | ETH_MAC_0_Configuration_TE), ETH_MAC_0_Configuration);
+		writel((ETH_MAC_0_Configuration_PS_GMII | ETH_MAC_0_Configuration_DM| ETH_MAC_0_Configuration_RE | ETH_MAC_0_Configuration_TE | 0x200000), ETH_MAC_0_Configuration);
 	} else {
 		/* RMII */
 		writel((ETH_MAC_0_Configuration_PS_MII | ETH_MAC_0_Configuration_FES_100M | ETH_MAC_0_Configuration_DM
 					| ETH_MAC_0_Configuration_RE | ETH_MAC_0_Configuration_TE), ETH_MAC_0_Configuration);
 	}
 
-	writel((ETH_MAC_1_Frame_Filter_PM | ETH_MAC_1_Frame_Filter_RA), ETH_MAC_1_Frame_Filter);
+	//writel((/*ETH_MAC_1_Frame_Filter_PM | */ETH_MAC_1_Frame_Filter_RA), ETH_MAC_1_Frame_Filter);
 }
 
 static void set_mac_addrs(void *ptr)
@@ -356,7 +413,7 @@ static void netdev_chk(void)
 
 	speed = full = 0;
 	id = detect_phyad();
-	rint2 = 3000;
+	rint2 = 30;
 	if(g_speed_enforce)
 	{
 		//printf("use enforce net speed\n");
@@ -368,11 +425,12 @@ static void netdev_chk(void)
 			if ((rint & PHY_SR_ANCOMPLETE)) {
 				break;
 			}
-			udelay(1000);
+			mdelay(1000);
 		} while (rint2-- > 0);
 		if (!(rint & PHY_SR_ANCOMPLETE)) {
 			printf("phy auto link failed\n");
 		}
+		printf("netdev_chk() used %d secs\n", 30 - rint2);
 	}
 	if (old_rint != rint) {
 		if (g_debug > 1)
@@ -452,7 +510,7 @@ static void netdev_chk(void)
 #endif
 			writel(readl(ETH_MAC_0_Configuration) & ~ ETH_MAC_0_Configuration_FES_100M, ETH_MAC_0_Configuration);
 #ifndef NEW_MAC_LOGIC
-			if( get_cpuid() < 0x1B ){
+			if( 0 && get_cpuid() < 0x1B ){
 				writel(readl(ETH_PLL_CNTL) & ~ETH_PLL_CNTL_DIVEN, ETH_PLL_CNTL);		// Disable the Ethernet clocks
 				// ---------------------------------------------
 				// Test 50Mhz Input Divide by 2
@@ -513,6 +571,7 @@ static void netdev_chk(void)
 	}
 }
 
+#if 0
 static void set_phy_mode(void)
 {
 	unsigned int phyad = -1;
@@ -545,6 +604,7 @@ static void set_phy_mode(void)
 			break;
 	}
 }
+#endif
 
 /* Reset and idle the chip, putting all registers into
  * a reasonable state */
@@ -556,10 +616,10 @@ static int eth_reset(struct _gStruct* emac_config)
 
 	if(get_cpuid() >= 0x16){
 		/* make sure PHY power-on */
-		set_phy_mode();
+		//set_phy_mode();
 	}
 #define NET_MAX_RESET_TEST 1000
-	if(g_speed_enforce) ori_ctl_val=phy_reg_rd(1, PHY_CR);
+	//if(g_speed_enforce) ori_ctl_val=phy_reg_rd(1, PHY_CR);
 	for (i = 0; i < NET_MAX_RESET_TEST; i++) {
 		/* Software Reset MAC */
 		writel(ETH_DMA_0_Bus_Mode_SWR, ETH_DMA_0_Bus_Mode);
@@ -579,9 +639,10 @@ static int eth_reset(struct _gStruct* emac_config)
 		}
 
 		udelay(100000);
-		hardware_reset();
+		//hardware_reset();
 		udelay(100000);
-		phyad = detect_phyad();
+		//phyad = detect_phyad();
+		phyad = 0;
 		if (phyad > 32 || phyad < 0) {
 			continue;
 		}
@@ -591,10 +652,13 @@ static int eth_reset(struct _gStruct* emac_config)
 		phy_reg_wr(phyad, PHY_SPMD, val);
 		*/
 		/* get phy_Identifier */
+#if 0
 		val = phy_reg_rd(phyad, 2);
 		g_phy_Identifier = val << 16;
 		val = phy_reg_rd(phyad, 3);
 		g_phy_Identifier |= val;
+#endif
+		g_phy_Identifier = PHY_RTL_8211F;
 		printf("find net phy id=0x%x, phyad=%d\n", (unsigned int)g_phy_Identifier, phyad);
 
 		if(g_phy_Identifier == PHY_IC_IP101ALF){
@@ -605,6 +669,9 @@ static int eth_reset(struct _gStruct* emac_config)
 				WRITE_CBUS_REG(HHI_ETH_CLK_CNTL, 0xf00); // phy ip101 need clock phase normal
 #endif
 		}
+
+		break;
+#if 0
 		/* Software Reset PHY */
 		phy_reg_wr(phyad, PHY_CR, PHY_CR_RST);
 		for (k = 0; k < NET_MAX_RESET_TEST; k++) {
@@ -619,6 +686,7 @@ static int eth_reset(struct _gStruct* emac_config)
 		} else {
 			break;
 		}
+#endif
 	}
 	if (i >= NET_MAX_RESET_TEST) {
 		printf("Error to detected phy\n");
@@ -627,6 +695,7 @@ static int eth_reset(struct _gStruct* emac_config)
 #ifdef INTERNAL_PHY
 	init_internal_phy(phyad);
 #endif
+#if 0
 	set_phy_mode();
 	val = PHY_CR_AN | PHY_CR_RSTAN;
 	phy_reg_wr(phyad, PHY_CR, val);
@@ -638,27 +707,32 @@ static int eth_reset(struct _gStruct* emac_config)
 
 	}
 	udelay(10);
+#endif
 
 	set_mac_mode();
 
+#if 0
 	writel((~0), ETH_DMA_5_Status);							/* clear all status flag */
 	writel(0, ETH_DMA_5_Status);
 	writel(0, ETH_DMA_6_Operation_Mode);					/* stop RX and TX */
 	val = readl(ETH_DMA_8_Missed_Frame_and_Overflow);		/* read to clean */
 
 	writel(0, ETH_DMA_7_Interrupt_Enable);					/* disable all interrupt */
-	writel((8 << ETH_DMA_0_Bus_Mode_PBL_P) | ETH_DMA_0_Bus_Mode_FB, ETH_DMA_0_Bus_Mode);
+#endif
 
 	printf("final_addr[rx-tx]: 0x%x-0x%x\n", (unsigned int)m->rx, (unsigned int)m->tx);
 	writel((long)m->rx, ETH_DMA_3_Re_Descriptor_List_Addr);
 	writel((long)m->tx, ETH_DMA_4_Tr_Descriptor_List_Addr);
 
+	writel((8 << ETH_DMA_0_Bus_Mode_PBL_P) | ETH_DMA_0_Bus_Mode_FB | PRIORXTX_41, ETH_DMA_0_Bus_Mode);
 	/* config the interrupt */
+#if 0
 	writel(ETH_DMA_7_Interrupt_Enable_TUE | ETH_DMA_7_Interrupt_Enable_TJE
 			| ETH_DMA_7_Interrupt_Enable_OVE | ETH_DMA_7_Interrupt_Enable_UNE | ETH_DMA_7_Interrupt_Enable_RIE
 			| ETH_DMA_7_Interrupt_Enable_RUE | ETH_DMA_7_Interrupt_Enable_RSE | ETH_DMA_7_Interrupt_Enable_FBE
 			| ETH_DMA_7_Interrupt_Enable_AIE | ETH_DMA_7_Interrupt_Enable_NIE, ETH_DMA_7_Interrupt_Enable);
 	writel(0, ETH_MAC_Interrupt_Mask);
+#endif
 
 	printf("Ethernet reset OK\n");
 	return 0;
@@ -722,8 +796,8 @@ static int aml_eth_send(struct udevice *net_current, void *packet, int length)
 		return -1;
 	}
 
-	eth_tx_dump((unsigned char *)packet, length);
-	netdev_chk();
+	//eth_tx_dump((unsigned char *)packet, length);
+	//netdev_chk();
 
 	struct _tx_desc* pTx = g_current_tx;
 	struct _tx_desc* pDma = (struct _tx_desc*)readl(ETH_DMA_18_Curr_Host_Tr_Descriptor);
@@ -770,13 +844,16 @@ static int aml_eth_send(struct udevice *net_current, void *packet, int length)
 	memcpy((unsigned char*)pTx->tdes2, (unsigned char*)packet, length);
 	//pTx->tdes1 &= DescEndOfRing;
 	_dcache_flush_range_for_net((unsigned long)pTx->tdes2, (unsigned long)pTx->tdes2 + length - 1);
-	pTx->tdes1 = ((length << TDES1_TBS1_P) & TDES1_TBS1_MASK) | TDES1_FS | TDES1_LS | TDES1_TCH | TDES1_IC;
+	pTx->tdes1 = pTx->tdes1 | ((length << TDES1_TBS1_P) & TDES1_TBS1_MASK) | TDES1_FS | TDES1_LS | TDES1_TCH /* | TDES1_IC */;
 	pTx->tdes0 = TDES0_OWN;
 	_dcache_flush_range_for_net((unsigned long)pTx, (unsigned long)(pTx + 1) - 1);
 
+#if 0
 	GetDMAStatus(&mask, &status);
 	if (status & ETH_DMA_5_Status_TS_SUSP) {
+#endif
 		writel(1, ETH_DMA_1_Tr_Poll_Demand);
+#if 0
 	} else {
 		DMATXStart();
 	}
@@ -813,6 +890,7 @@ static int aml_eth_send(struct udevice *net_current, void *packet, int length)
 	GetDMAStatus(&mask, &status);
 	printf("Current status=%x\n", status);
 #endif
+#endif
 	return 0;
 err:
 	return -1;
@@ -823,6 +901,7 @@ err:
  */
 static int aml_eth_rx(struct udevice* net_current, int flags, uchar **pkt)
 {
+#if 1
 	unsigned int mask;
 	unsigned int status;
 	int rxnum = 0;
@@ -833,21 +912,23 @@ static int aml_eth_rx(struct udevice* net_current, int flags, uchar **pkt)
 		return -1;
 	}
 
-	netdev_chk();
+	//netdev_chk();
 
+#if 0
 	/* Check packet ready or not */
 	GetDMAStatus(&mask, &status);
 	if (!((status & ETH_DMA_5_Status_NIS) && (status & ETH_DMA_5_Status_RI))) {
 		return 0;
 	}
 	writel(ETH_DMA_5_Status_NIS | ETH_DMA_5_Status_RI, ETH_DMA_5_Status);	//clear the int flag
+#endif
 
 	if (!g_current_rx) {
 		g_current_rx = gS->rx;
 	}
 	pRx = g_current_rx;
 	_dcache_inv_range_for_net((unsigned long)pRx, (unsigned long)(pRx + 1) - 1);
-	while (!(pRx->rdes0 & RDES0_OWN)) {
+	if (!(pRx->rdes0 & RDES0_OWN)) {
 		len = (pRx->rdes0 & RDES0_FL_MASK) >> RDES0_FL_P;
 		if (14 >= len) {
 			printf("err len=%d\n", len);
@@ -873,9 +954,15 @@ NEXT_BUF:
 		rxnum++;
 		//NetReceive(NetRxPackets[0], len);
 		//eth_rx_dump((unsigned char *)NetRxPackets[0], len);
+		//eth_rx_dump((unsigned char *)*pkt, len);
+	} else {
+		return -EAGAIN;
 	}
 
 	return len;
+#else
+	return -EAGAIN;
+#endif
 }
 
 static int aml_ethernet_init(struct udevice *dev)
@@ -894,10 +981,6 @@ static int aml_ethernet_init(struct udevice *dev)
 		return 0;
 	}
 	printf("Amlogic Ethernet Init\n");
-
-	WRITE_CBUS_REG(0x1050, 0xffffffff);
-	WRITE_CBUS_REG(0x1051, 0xffffffff);
-	WRITE_CBUS_REG(0x1052, 0xffffffff);
 
 	/* init the dma descriptor 128k */
 	gS = (struct _gStruct*)malloc(sizeof(struct _gStruct));
@@ -937,6 +1020,7 @@ static int aml_ethernet_init(struct udevice *dev)
 		printf("[===dma_tx] 0x%x-0x%x\n", tx_start, rx_start);
 		printf("[===dma_rx] 0x%x-0x%x\n", rx_start,(unsigned int) g_rx);
 	}
+
 	/* init RX desc */
 	pRDesc = gS->rx;
 	bufptr = (unsigned char *) gS->rx_buf_addr;
@@ -970,7 +1054,7 @@ static int aml_ethernet_init(struct udevice *dev)
 			printf("[tx-descriptor%d] 0x%x\n", i, (unsigned int)bufptr);
 		}
 		pTDesc->tdes0 = 0;
-		pTDesc->tdes1 = TDES1_TCH | TDES1_IC;
+		pTDesc->tdes1 = TDES1_TCH /* | TDES1_IC */;
 		pTDesc->tdes2 = (unsigned long)bufptr;
 		pTDesc->tdes3 = (unsigned long)pTDesc + sizeof(struct _tx_desc);
 		pTDesc->reverse[0] = 0;
@@ -981,7 +1065,7 @@ static int aml_ethernet_init(struct udevice *dev)
 		pTDesc = pTDesc + 1;
 	}
 	pTDesc->tdes0 = 0;
-	pTDesc->tdes1 = TDES1_TCH | TDES1_TER | TDES1_IC; 	//chain buf, enable complete interrupt
+	pTDesc->tdes1 = TDES1_TCH | TDES1_TER /* | TDES1_IC */; 	//chain buf, enable complete interrupt
 	pTDesc->tdes2 = (unsigned long)bufptr;
 	pTDesc->tdes3 = (unsigned long)gS->tx; 		//circle
 	g_current_tx = gS->tx;
@@ -991,11 +1075,13 @@ static int aml_ethernet_init(struct udevice *dev)
 	eth_reset(gS);
 
 #ifndef CONFIG_RANDOM_MAC_ADDR
-	char *enetaddr = env_get("ethaddr");
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	char *enetaddr = pdata->enetaddr;
 
 	/* set mac addr */
 	//eth_getenv_enetaddr("ethaddr", g_bi_enetaddr);
 	memcpy(g_bi_enetaddr, enetaddr, 6);
+	//memcpy(g_bi_enetaddr, "\x10\x22\x33\x44\x55\x66", 6);
 	set_mac_addrs(g_bi_enetaddr);
 
 	/* get the mac and ip */
@@ -1003,11 +1089,12 @@ static int aml_ethernet_init(struct udevice *dev)
 			g_bi_enetaddr[2], g_bi_enetaddr[3], g_bi_enetaddr[4], g_bi_enetaddr[5]);
 #endif
 	/* start the dma para, but don't start the receive dma */
-	writel(ETH_DMA_6_Operation_Mode_EFC | ETH_DMA_6_Operation_Mode_TTC_16 | ETH_DMA_6_Operation_Mode_RSF | ETH_DMA_6_Operation_Mode_TSF | ETH_DMA_6_Operation_Mode_DT, ETH_DMA_6_Operation_Mode);
+	//writel(ETH_DMA_6_Operation_Mode_EFC | ETH_DMA_6_Operation_Mode_TTC_16 | ETH_DMA_6_Operation_Mode_RSF | ETH_DMA_6_Operation_Mode_TSF | ETH_DMA_6_Operation_Mode_DT, ETH_DMA_6_Operation_Mode);
 	// | ETH_DMA_6_Operation_Mode_RTC_32 | ETH_DMA_6_Operation_Mode_FUF
 
-	netdev_chk();
 	DMARXStart();
+	DMATXStart();
+	netdev_chk();
 
 	g_nInitialized = 1;
 	return 0;
@@ -1031,10 +1118,60 @@ static const struct eth_ops aml_eth_ops = {
 	.stop = aml_eth_halt,
 };
 
+static int aml_phy_init(struct udevice *dev)
+{
+	struct phy_device *phydev;
+	struct mii_dev *bus = miiphy_get_dev_by_name(dev->name);
+
+	if (IS_ENABLED(CONFIG_DM_ETH_PHY))
+		eth_phy_set_mdio_bus(dev, NULL);
+
+#if IS_ENABLED(CONFIG_DM_MDIO)
+	phydev = dm_eth_phy_connect(dev);
+	if (!phydev)
+		return -ENODEV;
+#else
+	int phy_addr = -1;
+
+	if (IS_ENABLED(CONFIG_DM_ETH_PHY))
+		phy_addr = eth_phy_get_addr(dev);
+
+#ifdef CONFIG_PHY_ADDR
+	phy_addr = CONFIG_PHY_ADDR;
+#endif
+
+	phydev = phy_connect(bus, phy_addr, dev, PHY_INTERFACE_MODE_RGMII);
+	if (!phydev)
+		return -ENODEV;
+#endif
+
+	phydev->supported &= PHY_GBIT_FEATURES;
+	phydev->advertising = phydev->supported;
+
+	phy_config(phydev);
+
+	return 0;
+}
+
+int aml_eth_probe(struct udevice *dev)
+{
+	int ret;
+	//WRITE_CBUS_REG(0x1050, 0xffffffff);
+	WRITE_CBUS_REG(0x1051, READ_CBUS_REG(0x1051) | 0b1000);
+	//WRITE_CBUS_REG(0x1052, 0xffffffff);
+
+	ret = aml_dm_mdio_init(dev->name, dev);
+	if (ret)
+		return ret;
+
+	return aml_phy_init(dev);
+};
+
 U_BOOT_DRIVER(aml_eth) = {
 	.name = "aml_eth",
 	.id = UCLASS_ETH,
 	.of_match = aml_eth_ids,
+	.probe = aml_eth_probe,
 	.ops = &aml_eth_ops,
 	.flags = DM_FLAG_ALLOC_PRIV_DMA,
 };
