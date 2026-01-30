@@ -62,6 +62,7 @@ struct meson_serial_plat {
 #define AML_UART_REG5_USE_NEW_BAUD	BIT(23) /* default 1 (use new baud rate register) */
 #define AML_UART_REG5_BAUD_MASK		0x7fffff
 
+#if CONFIG_IS_ENABLED(DM_SERIAL)
 static int meson_serial_pending(struct udevice *dev, bool input);
 
 static u32 meson_calc_baud_divisor(ulong src_rate, u32 baud)
