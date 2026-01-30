@@ -62,26 +62,31 @@ struct meson_serial_plat {
 #define AML_UART_REG5_USE_NEW_BAUD	BIT(23) /* default 1 (use new baud rate register) */
 #define AML_UART_REG5_BAUD_MASK		0x7fffff
 
-#if CONFIG_IS_ENABLED(DM_SERIAL)
+static int meson_serial_pending(struct udevice *dev, bool input);
+
 static u32 meson_calc_baud_divisor(ulong src_rate, u32 baud)
 {
+	u32 divisor;
+
+	if (src_rate == 24000000)
+		divisor = 3;
+	else
+		divisor = 4;
 	/*
-	 * Usually src_rate is 24 MHz (from crystal) as clock source for serial
-	 * device. Since 8 Mb/s is the maximum supported baud rate, use div by 3
-	 * to derive baud rate. This choice is used also in meson_serial_setbrg.
+	 * if 24MHz xtal is the clock source, rate is divided by 3. otherwise 4
 	 */
-	return DIV_ROUND_CLOSEST(src_rate / 3, baud) - 1;
+	return DIV_ROUND_CLOSEST(src_rate / divisor, baud) - 1;
 }
 
 static void meson_serial_set_baud(struct meson_uart *uart, ulong src_rate, u32 baud)
 {
-	/*
-	 * Set crystal divided by 3 (regardless of device tree clock property)
-	 * as clock source and the corresponding divisor to approximate baud
-	 */
+	bool use_xtal = src_rate == 24000000;
 	u32 divisor = meson_calc_baud_divisor(src_rate, baud);
-	u32 val = AML_UART_REG5_USE_XTAL_CLK | AML_UART_REG5_USE_NEW_BAUD |
-		(divisor & AML_UART_REG5_BAUD_MASK);
+	u32 val = AML_UART_REG5_USE_NEW_BAUD | (divisor & AML_UART_REG5_BAUD_MASK);
+
+	if (use_xtal)
+		val |= AML_UART_REG5_USE_XTAL_CLK;
+
 	writel(val, &uart->reg5);
 }
 
@@ -109,6 +114,7 @@ static int meson_serial_probe(struct udevice *dev)
 		return ret;
 	ulong rate = clk_get_rate(&per_clk);
 
+	while (meson_serial_pending(dev, false));
 	meson_serial_set_baud(uart, rate, CONFIG_BAUDRATE);
 	meson_serial_init(uart);
 
@@ -178,14 +184,20 @@ static int meson_serial_setbrg(struct udevice *dev, const int baud)
 
 	if (ret)
 		return ret;
+	ulong rate_in;
 	ulong rate = clk_get_rate(&per_clk);
+	if (rate == 24000000)
+		rate_in = rate / 3;
+	else
+		rate_in = rate / 4;
 	u32 divisor = meson_calc_baud_divisor(rate, baud);
-	u32 calc_baud = (rate / 3) / (divisor + 1);
+	u32 calc_baud = rate_in / (divisor + 1);
 	u32 calc_err = baud > calc_baud ? baud - calc_baud : calc_baud - baud;
 
 	if (((calc_err * 100) / baud) > 2)
 		return -EINVAL;
 
+	while (meson_serial_pending(dev, false));
 	meson_serial_set_baud(uart, rate, baud);
 
 	return 0;
@@ -222,10 +234,10 @@ static int meson_serial_pending(struct udevice *dev, bool input)
 static int meson_serial_of_to_plat(struct udevice *dev)
 {
 	struct meson_serial_plat *plat = dev_get_plat(dev);
-	fdt_addr_t addr;
+	void __iomem *addr;
 
-	addr = dev_read_addr(dev);
-	if (addr == FDT_ADDR_T_NONE)
+	addr = dev_read_addr_ptr(dev);
+	if (!addr)
 		return -EINVAL;
 
 	plat->reg = (struct meson_uart *)addr;
@@ -242,6 +254,7 @@ static const struct dm_serial_ops meson_serial_ops = {
 
 static const struct udevice_id meson_serial_ids[] = {
 	{ .compatible = "amlogic,meson-uart" },
+	{ .compatible = "amlogic,meson8b-uart" },
 	{ .compatible = "amlogic,meson-gx-uart" },
 	{ .compatible = "amlogic,meson-a1-uart" },
 	{ }
