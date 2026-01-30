@@ -371,6 +371,7 @@ config ETH_DESIGNWARE
 config ETH_DESIGNWARE_MESON8B
 	bool "Amlogic Meson8b and later glue driver for Synopsys Designware Ethernet MAC"
 	select ETH_DESIGNWARE
+	select CLK if MESON_MX
 	help
 	  This provides glue layer to use Synopsys Designware Ethernet MAC
 	  present on the Amlogic Meson8b, GX, AXG & G12A SoCs.
