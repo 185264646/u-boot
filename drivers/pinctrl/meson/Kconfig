@@ -21,6 +21,10 @@ config PINCTRL_MESON_GXL
 	bool "Amlogic Meson GXL SoC pinctrl driver"
 	select PINCTRL_MESON_GX_PMX
 
+config PINCTRL_MESON_M8B
+	bool "Amlogic Meson 8B SoC pinctrl driver"
+	select PINCTRL_MESON_GX_PMX
+
 config PINCTRL_MESON_AXG
 	bool "Amlogic Meson AXG SoC pinctrl driver"
 	select PINCTRL_MESON_AXG_PMX
