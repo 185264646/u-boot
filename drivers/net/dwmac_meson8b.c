@@ -216,9 +216,7 @@ static int dwmac_setup_mx(struct udevice *dev, struct eth_pdata *edata)
 
 	case PHY_INTERFACE_MODE_RMII:
 		/* Set RMII mode */
-		clrsetbits_le32(plat->regs + ETH_REG_0, GX_ETH_REG_0_MASK,
-				GX_ETH_REG_0_INVERT_RMII_CLK |
-				GX_ETH_REG_0_CLK_EN);
+		assert(1);
 
 		break;
 
