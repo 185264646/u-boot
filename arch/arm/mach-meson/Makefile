@@ -2,7 +2,8 @@
 #
 # Copyright (c) 2016 Beniamino Galvani <b.galvani@gmail.com>
 
-obj-y += board-common.o sm.o board-info.o capsule.o
+obj-y += board-common.o board-info.o
+obj-$(CONFIG_MESON64_COMMON) += sm.o capsule.o
 obj-$(CONFIG_MESON_GX) += board-gx.o
 ifeq ($(CONFIG_SPL_BUILD),y)
 obj-$(CONFIG_MESON_GXBB) += dram-gxbb.o
@@ -17,3 +18,4 @@ endif
 obj-$(CONFIG_MESON_AXG) += board-axg.o
 obj-$(CONFIG_MESON_G12A) += board-g12a.o
 obj-$(CONFIG_MESON_A1) += board-a1.o
+obj-$(CONFIG_MESON_M8B) += board-m8b.o

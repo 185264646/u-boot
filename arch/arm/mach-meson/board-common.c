@@ -33,6 +33,8 @@ __weak int board_init(void)
 #ifndef CONFIG_SPL_BUILD
 int dram_init(void)
 {
+	return fdtdec_setup_mem_size_base();
+#if 0
 	const fdt64_t *val;
 	int offset;
 	int len;
@@ -49,6 +51,7 @@ int dram_init(void)
 	gd->ram_size = get_unaligned_be64(&val[1]);
 
 	return 0;
+#endif
 }
 #endif
 
@@ -155,6 +158,7 @@ int board_late_init(void)
 	return meson_board_late_init();
 }
 
+#if CONFIG_IS_ENABLED(MESON64_COMMON)
 void reset_cpu(void)
 {
 #if CONFIG_SPL_BUILD
@@ -168,3 +172,12 @@ void reset_cpu(void)
 	psci_system_reset();
 #endif
 }
+#endif
+
+#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && defined(CONFIG_CPU_V7A)
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
+}
+#endif
