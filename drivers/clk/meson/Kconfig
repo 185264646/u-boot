@@ -1,6 +1,15 @@
 config CLK_MESON_MPLL
 	def_bool n
 
+config CLK_MESON_M8B
+	bool "Enable clock support for Amlogic Meson8b"
+	depends on CLK_CCF && ARCH_MESON
+	select CLK_MESON_MPLL
+	default MESON_M8B
+	help
+	  Enable clock support for the Amlogic Meson8b SoC family,
+	  such as the S805.
+
 config CLK_MESON_GX
 	bool "Enable clock support for Amlogic GX"
 	depends on CLK && ARCH_MESON

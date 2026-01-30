@@ -4,6 +4,7 @@
 # Jerome Brunet <jbrunet@baylibre.com>
 
 obj-$(CONFIG_CLK_MESON_MPLL) += clk-mpll.o
+obj-$(CONFIG_CLK_MESON_M8B) += meson8b.o clk-regmap.o
 obj-$(CONFIG_CLK_MESON_GX) += gxbb.o
 obj-$(CONFIG_CLK_MESON_AXG) += axg.o
 obj-$(CONFIG_CLK_MESON_AXG) += axg-ao.o
