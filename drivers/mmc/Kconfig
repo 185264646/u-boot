@@ -334,6 +334,13 @@ config MMC_MESON_GX
 	help
 	 Support for EMMC host controller on Meson GX ARM SoCs platform (S905)
 
+config MMC_MESON_MX
+	bool "Meson MX EMMC controller support"
+	depends on ARCH_MESON
+	select REGMAP
+	help
+	 Support for EMMC host controller on Meson MX ARM SoCs platform (S805)
+
 config MMC_OWL
 	bool "Actions OWL Multimedia Card Interface support"
 	depends on ARCH_OWL
